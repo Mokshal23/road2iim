@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// These rules mirror how a shared Google Sheet works: anyone with the
+// Firebase project's public config (which is bundled into the deployed
+// site anyway) can read and write. There's no login step — same trust
+// model as sharing a sheet link with your mentor.
+//
+// This is fine for personal study data, but know the tradeoff: anyone who
+// finds the URL could, in theory, edit or delete entries. If you want it
+// locked down later, the cleanest upgrade is Firebase Anonymous Auth +
+// checking request.auth != null below, or restricting writes to specific
+// known UIDs.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /entries/{entryId} {
+      allow read, write: if true;
+    }
+    match /goals/{goalId} {
+      allow read, write: if true;
+    }
+    match /comments/{commentId} {
+      allow read, write: if true;
+    }
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+    match /aeonArticles/{articleId} {
+      allow read, write: if true;
+    }
+    match /mockTests/{mockId} {
+      allow read, write: if true;
+    }
+    match /tasks/{taskId} {
+      allow read, write: if true;
+    }
+  }
+}
