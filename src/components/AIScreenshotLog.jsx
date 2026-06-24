@@ -47,7 +47,7 @@ export default function AIScreenshotLog({ onAutofill }) {
 
   if (!apiKey) {
     return (
-      <div className="card ai-log-setup" style={{ borderStyle: 'dashed', borderColor: 'var(--amber)', padding: '16px' }}>
+      <div className="card ai-card ai-log-setup" style={{ borderStyle: 'dashed', borderColor: 'var(--amber)', padding: '16px' }}>
         <h4 style={{ margin: '0 0 6px 0', fontSize: '14px' }}>📷 AI Screenshot Autofill</h4>
         <p className="insight" style={{ marginBottom: '12px' }}>
           Instantly fill forms by pasting or uploading scorecards. Enter your API key below.
@@ -90,7 +90,7 @@ export default function AIScreenshotLog({ onAutofill }) {
 
   return (
     <div
-      className="card ai-log-zone"
+      className="card ai-card ai-log-zone"
       onClick={() => document.getElementById('ai-screenshot-picker').click()}
       style={{
         borderStyle: 'dashed',
