@@ -1,6 +1,6 @@
 # Road2IIM — Task List (Upgrade Complete)
 
-All analytical upgrades, UI styling changes, robust AI auto-filling, mobile responsiveness adjustments, and the AI Coach & Executive Summary briefing have been built and verified.
+All analytical upgrades, UI styling changes, robust AI auto-filling, mobile responsiveness adjustments, the AI Coach briefing, vocabulary auto-definer, and mock test AI parser have been built and verified.
 
 ---
 
@@ -31,3 +31,8 @@ All analytical upgrades, UI styling changes, robust AI auto-filling, mobile resp
 - [x] Create [AICoachSummary.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/AICoachSummary.jsx) to compile 7-day stats, query Gemini API (with fallback), and cache results.
 - [x] Integrate `AICoachSummary` at the top of [TodayView.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/TodayView.jsx) spanning across columns.
 - [x] Design cohesive glassmorphic styling for all AI-enabled cards (`.ai-card`) in [index.css](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/index.css).
+
+## Group F: AI Vocabulary & Mock Logger
+- [x] Implement `defineWordWithGemini` in [ai.js](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/utils/ai.js) to define words in a concise context.
+- [x] Add auto-definer state, method, and buttons to [EntryForm.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/EntryForm.jsx) and [QuickLogForm.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/QuickLogForm.jsx).
+- [x] Integrate `AIScreenshotLog` in [MockTests.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/MockTests.jsx) to autofill overall score, percentile, and sectional splits.
