@@ -172,7 +172,7 @@ Return ONLY a raw JSON object matching the structure below. Do not wrap it in ma
   ]
 }`;
 
-  const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
   let lastError = null;
 
   for (const model of models) {

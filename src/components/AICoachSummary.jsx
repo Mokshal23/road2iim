@@ -19,7 +19,7 @@ ${JSON.stringify(activitySummary, null, 2)}
 
   // We can reuse our parseScreenshotWithGemini fallback utility or call fetch directly.
   // Let's call the model API directly for a text prompt.
-  const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
   let lastError = null;
 
   for (const model of models) {

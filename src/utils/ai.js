@@ -43,7 +43,7 @@ export function resizeAndCompressImage(file, maxWidth = 1000, quality = 0.8) {
   });
 }
 
-async function callGeminiModel(modelName, base64Image, apiKey) {
+async function callGeminiModel(modelName, base64Image, apiKey, timeoutMs = 25000) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const prompt = `You are a data extraction assistant for CAT (Common Admission Test) prep.
@@ -110,7 +110,7 @@ Assume a default high accuracy (100% or close) as a baseline:
 Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON string.`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs); // dynamic timeout
 
   try {
     const response = await fetch(url, {
@@ -165,16 +165,16 @@ Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON str
 export async function parseScreenshotWithGemini(base64Image, apiKey) {
   let rawParsed;
   try {
-    // Try Gemini 1.5 Flash first (stable and fast multimodal model)
-    rawParsed = await callGeminiModel('gemini-1.5-flash', base64Image, apiKey);
-  } catch (err1_5) {
-    console.warn('Gemini 1.5 Flash failed, trying fallback to Gemini 2.0 Flash:', err1_5);
+    // Try Gemini 2.5 Flash first with a 25-second timeout
+    rawParsed = await callGeminiModel('gemini-2.5-flash', base64Image, apiKey, 25000);
+  } catch (err2_5) {
+    console.warn('Gemini 2.5 Flash failed or timed out, trying fallback to Gemini 2.0 Flash:', err2_5);
     try {
       // Fallback to Gemini 2.0 Flash
-      rawParsed = await callGeminiModel('gemini-2.0-flash', base64Image, apiKey);
+      rawParsed = await callGeminiModel('gemini-2.0-flash', base64Image, apiKey, 35000);
     } catch (err2_0) {
       console.error('Gemini 2.0 Flash fallback failed:', err2_0);
-      throw new Error(err1_5.message || 'Gemini API call failed', { cause: err2_0 });
+      throw new Error(err2_5.message || 'Gemini API call failed', { cause: err2_0 });
     }
   }
 
@@ -207,16 +207,16 @@ Provide a concise definition and a key synonym in exactly one short line (e.g. "
 Do not include markdown bold or block tags. Keep the definition under 14 words.`;
 
   try {
-    const text = await callGeminiText('gemini-1.5-flash', prompt, apiKey);
+    const text = await callGeminiText('gemini-2.5-flash', prompt, apiKey);
     return text.trim();
-  } catch (err1_5) {
-    console.warn('Gemini 1.5 Flash vocab definition failed, trying 2.0 Flash:', err1_5);
+  } catch (err2_5) {
+    console.warn('Gemini 2.5 Flash vocab definition failed, trying 2.0 Flash:', err2_5);
     try {
       const text = await callGeminiText('gemini-2.0-flash', prompt, apiKey);
       return text.trim();
     } catch (err2_0) {
       console.error('Gemini 2.0 Flash vocab definition failed:', err2_0);
-      throw new Error(err1_5.message || 'Failed to fetch definition', { cause: err2_0 });
+      throw new Error(err2_5.message || 'Failed to fetch definition', { cause: err2_0 });
     }
   }
 }
