@@ -10,8 +10,8 @@ export function fileToBase64(file) {
   });
 }
 
-export async function parseScreenshotWithGemini(base64Image, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+async function callGeminiModel(modelName, base64Image, apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const prompt = `You are a data extraction assistant for CAT (Common Admission Test) prep. Analyze this screenshot of a practice session, scorecard, or drill report.
 Extract the details and return a raw JSON object matching the following structure:
@@ -58,7 +58,7 @@ Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON str
 
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(err.error?.message || 'Gemini API request failed');
+    throw new Error(err.error?.message || `Gemini API request failed for ${modelName}`);
   }
 
   const result = await response.json();
@@ -67,4 +67,21 @@ Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON str
   // Clean text in case Gemini still wraps in markdown block
   const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
   return JSON.parse(cleaned);
+}
+
+export async function parseScreenshotWithGemini(base64Image, apiKey) {
+  try {
+    // Try Gemini 2.5 Flash first
+    return await callGeminiModel('gemini-2.5-flash', base64Image, apiKey);
+  } catch (err2_5) {
+    console.warn('Gemini 2.5 Flash failed, trying fallback to Gemini 1.5 Flash:', err2_5);
+    try {
+      // Fallback to Gemini 1.5 Flash (highly stable, higher free limits)
+      return await callGeminiModel('gemini-1.5-flash', base64Image, apiKey);
+    } catch (err1_5) {
+      console.error('Gemini 1.5 Flash fallback failed:', err1_5);
+      // Throw the primary error to show to the user, or explain both failed
+      throw new Error(err2_5.message || 'Gemini API call failed', { cause: err1_5 });
+    }
+  }
 }
