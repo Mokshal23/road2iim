@@ -104,26 +104,38 @@ Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON str
   const result = await response.json();
   const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-  // Clean text in case Gemini still wraps in markdown block
-  const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-  return JSON.parse(cleaned);
+  try {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error('No valid JSON structure found in Gemini response');
+    }
+    const jsonStr = text.substring(start, end + 1);
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    console.warn('Raw text parsing failed:', text);
+    throw new Error('Failed to parse response JSON from Gemini', { cause: err });
+  }
 }
 
 export async function parseScreenshotWithGemini(base64Image, apiKey) {
+  let rawParsed;
   try {
     // Try Gemini 2.5 Flash first
-    return await callGeminiModel('gemini-2.5-flash', base64Image, apiKey);
+    rawParsed = await callGeminiModel('gemini-2.5-flash', base64Image, apiKey);
   } catch (err2_5) {
     console.warn('Gemini 2.5 Flash failed, trying fallback to Gemini 1.5 Flash:', err2_5);
     try {
       // Fallback to Gemini 1.5 Flash (highly stable, higher free limits)
-      return await callGeminiModel('gemini-1.5-flash', base64Image, apiKey);
+      rawParsed = await callGeminiModel('gemini-1.5-flash', base64Image, apiKey);
     } catch (err1_5) {
       console.error('Gemini 1.5 Flash fallback failed:', err1_5);
       // Throw the primary error to show to the user, or explain both failed
       throw new Error(err2_5.message || 'Gemini API call failed', { cause: err1_5 });
     }
   }
+
+  return sanitizeParsedDetails(rawParsed);
 }
 
 async function callGeminiText(modelName, prompt, apiKey) {
@@ -164,5 +176,76 @@ Do not include markdown bold or block tags. Keep the definition under 14 words.`
       throw new Error(err2_5.message || 'Failed to fetch definition', { cause: err1_5 });
     }
   }
+}
+
+export function sanitizeParsedDetails(parsed) {
+  if (!parsed || typeof parsed !== 'object') return {};
+
+  const cleanNum = (val) => {
+    if (val === undefined || val === null) return null;
+    if (typeof val === 'number') return val;
+    // Extract first numeric match (including decimals)
+    const match = String(val).match(/-?\d+(\.\d+)?/);
+    return match ? Number(match[0]) : null;
+  };
+
+  const cleanStr = (val) => {
+    if (!val) return '';
+    return String(val).trim();
+  };
+
+  const result = { ...parsed };
+
+  // Normalize structure type
+  result.type = cleanStr(parsed.type).toLowerCase() === 'mock' ? 'mock' : 
+                 cleanStr(parsed.type).toLowerCase() === 'sectional' ? 'sectional' : 'practice';
+
+  // Normalize single practice fields
+  if (result.type === 'practice') {
+    result.timeTaken = cleanNum(parsed.timeTaken);
+    result.attempted = cleanNum(parsed.attempted);
+    result.correct = cleanNum(parsed.correct);
+    result.label = cleanStr(parsed.label);
+    
+    // Normalize section
+    let sec = cleanStr(parsed.section).toUpperCase();
+    if (sec.includes('VARC') || sec.includes('VERBAL') || sec.includes('READING')) sec = 'VARC';
+    else if (sec.includes('LR') || sec.includes('DI') || sec.includes('LOGICAL') || sec.includes('INTERP')) sec = 'LRDI';
+    else if (sec.includes('QA') || sec.includes('QUANT') || sec.includes('MATH')) sec = 'QA';
+    result.section = sec;
+  }
+
+  // Normalize mock scorecard fields
+  if (result.type === 'mock' || result.type === 'sectional') {
+    result.overallScore = cleanNum(parsed.overallScore);
+    result.overallPercentile = cleanNum(parsed.overallPercentile);
+    result.source = cleanStr(parsed.source);
+    result.label = cleanStr(parsed.label);
+
+    if (parsed.sections && typeof parsed.sections === 'object') {
+      result.sections = {};
+      const keys = ['VARC', 'LRDI', 'QA'];
+      for (const k of keys) {
+        // Find if key exists in different cases or variants (e.g. "VARC", "Varc", "Verbal")
+        const matchKey = Object.keys(parsed.sections).find(
+          pk => pk.toUpperCase().includes(k) || 
+                (k === 'VARC' && pk.toUpperCase().includes('VERB')) ||
+                (k === 'LRDI' && (pk.toUpperCase().includes('LR') || pk.toUpperCase().includes('DI'))) ||
+                (k === 'QA' && pk.toUpperCase().includes('QUAN'))
+        );
+
+        if (matchKey && parsed.sections[matchKey]) {
+          const s = parsed.sections[matchKey];
+          result.sections[k] = {
+            attempted: cleanNum(s.attempted),
+            correct: cleanNum(s.correct),
+            timeTaken: cleanNum(s.timeTaken)
+          };
+        }
+      }
+    }
+  }
+
+  return result;
 }
 
