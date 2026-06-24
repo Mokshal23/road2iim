@@ -13,10 +13,18 @@ export function fileToBase64(file) {
 async function callGeminiModel(modelName, base64Image, apiKey) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-  const prompt = `You are a data extraction assistant for CAT (Common Admission Test) prep. Analyze this screenshot of a practice session, scorecard, or drill report.
-Extract the details and return a raw JSON object matching the following structure:
+  const prompt = `You are a data extraction assistant for CAT (Common Admission Test) prep.
+Analyze this screenshot. It will be either:
+(A) A practice session, set, or drill report (single topic/section).
+(B) A full mock test scorecard or sectional mock scorecard (showing overall metrics and/or splits for VARC, LRDI/DILR, and QA/Quant).
+
+Determine which type of screenshot this is and return a raw JSON object matching the appropriate structure.
+
+---
+STRUCTURE A: If the screenshot is a practice session, set, or drill report:
 {
-  "timeTaken": number (minutes spent on the set/passage, parse decimals if present, e.g. 15.5; return null or empty if not visible),
+  "type": "practice",
+  "timeTaken": number (minutes spent on the set/passage, parse decimals if present, e.g. 15.5; return null if not visible),
   "attempted": number (total questions attempted or answered),
   "correct": number (total questions correct),
   "label": string (a heading or label for this set/passage, e.g. "Reading Comprehension Scorecard", "RC Passage", "Verbal Ability Drill", or the specific name/topic of the set if visible),
@@ -27,12 +35,44 @@ Extract the details and return a raw JSON object matching the following structur
   "difficulty": string (either "Easy" or "Medium" or "Hard")
 }
 
-Normalization rules:
+Normalization rules for Structure A:
 1. "attempted": If not explicitly listed, count the questions attempted (can be computed as correct + incorrect).
 2. "correct": If not explicitly listed, count the questions correct (can be computed as attempted - incorrect).
-3. "section" and "subsection": Determine the section and subsection based on the text. For example, if it says "Reading Comprehension" or lists "Passage", set "section" to "VARC" and "subsection" to "Reading Comprehension". If it lists "Verbal Ability" or tasks like Para Jumbles, set "section" to "VARC" and "subsection" to "Verbal Ability".
-4. "label": Create a concise heading summarizing the set (e.g. "Reading Comprehension Scorecard" or the section header name).
-5. "source": Infer from logos or names if visible (e.g., IMS scorecard -> "IMS Portal", iQuanta -> "iQuanta"). Default to "Other" if not identifiable.
+
+---
+STRUCTURE B: If the screenshot is a full mock test scorecard or a sectional mock scorecard:
+{
+  "type": "mock",
+  "overallScore": number (overall score, e.g., 125, if visible),
+  "overallPercentile": number (overall percentile, e.g., 97.22, if visible),
+  "source": string (either "IMS", "SimCAT", "AIMCAT", "Cracku", "iQuanta", or "Other"),
+  "label": string (a specific mock test label if visible, e.g., "SimCAT 7", "AIMCAT 2501"),
+  "sections": {
+    "VARC": {
+      "attempted": number (or null if not shown),
+      "correct": number (or null if not shown),
+      "timeTaken": number (minutes, or null if not shown)
+    },
+    "LRDI": {
+      "attempted": number (or null if not shown),
+      "correct": number (or null if not shown),
+      "timeTaken": number (minutes, or null if not shown)
+    },
+    "QA": {
+      "attempted": number (or null if not shown),
+      "correct": number (or null if not shown),
+      "timeTaken": number (minutes, or null if not shown)
+    }
+  }
+}
+
+Scoring Estimation Rules for Structure B:
+If the scorecard lists sectional scores (marks) or percentiles but not attempts/corrects (e.g., in Verbal/VARC the score is 54; in LRDI/DILR the score is 38; in QA the score is 33), you MUST estimate "attempted" and "correct" for each section based on the marks using the standard CAT scoring (+3 for correct, -1 for wrong).
+Assume a default high accuracy (100% or close) as a baseline:
+- If a section score is 54, set: attempted: 18, correct: 18 (since 18 * 3 = 54).
+- If a section score is 33, set: attempted: 11, correct: 11 (since 11 * 3 = 33).
+- If a section score is 38 (not divisible by 3), estimate: attempted: 14, correct: 13 (since 13 * 3 - 1 = 38).
+- For timeTaken, set it to the standard CAT sectional limit: 40 minutes per section (VARC: 40, LRDI: 40, QA: 40) if time is not explicitly visible or is shown as standard CAT duration.
 
 Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON string.`;
 
