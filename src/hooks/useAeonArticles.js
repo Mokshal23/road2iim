@@ -40,6 +40,10 @@ export async function addAeonArticle(article) {
     summary: article.summary || '',
     difficulty: article.difficulty,
     vocab: (article.vocab || []).filter((v) => v.word.trim()),
+    link: article.link || '',
+    timeTaken: Number(article.timeTaken) || 0,
+    wordCount: Number(article.wordCount) || 0,
+    readingSpeed: (Number(article.wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(article.wordCount) / Number(article.timeTaken)) : 0,
     createdAt: serverTimestamp(),
   });
 }
@@ -57,5 +61,9 @@ export async function updateAeonArticle(id, article) {
     summary: article.summary || '',
     difficulty: article.difficulty,
     vocab: (article.vocab || []).filter((v) => v.word.trim()),
+    link: article.link || '',
+    timeTaken: Number(article.timeTaken) || 0,
+    wordCount: Number(article.wordCount) || 0,
+    readingSpeed: (Number(article.wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(article.wordCount) / Number(article.timeTaken)) : 0,
   });
 }

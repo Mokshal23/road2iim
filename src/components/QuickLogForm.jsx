@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS } from '../constants';
+import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS, DIFFICULTY_OPTIONS } from '../constants';
 import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
@@ -21,7 +21,9 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
   const [form, setForm] = useState({
     subsection: seed.subsection, topic: seed.topic, source: seed.source,
     timeTaken: '', attempted: '', correct: '', negativeMarking: true, mistakeTags: [], goodTags: [],
+    difficulty: 'Medium', vocab: [],
   });
+  const [showVocab, setShowVocab] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
   const stats = computeStats(form);
@@ -37,7 +39,8 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
     try {
       await saveSessionRows([{ ...form, date: todayStr(), section: sectionKey, label: '', notes: '' }]);
       setStatus({ type: 'success', msg: 'Logged.' });
-      setForm((f) => ({ ...f, timeTaken: '', attempted: '', correct: '', mistakeTags: [], goodTags: [] }));
+      setForm((f) => ({ ...f, timeTaken: '', attempted: '', correct: '', mistakeTags: [], goodTags: [], vocab: [] }));
+      setShowVocab(false);
     } catch (e2) {
       setStatus({ type: 'error', msg: e2.message });
     } finally {
@@ -75,6 +78,21 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
         </select>
       </div>
 
+      <label>
+        Difficulty
+        <div className="seg">
+          {DIFFICULTY_OPTIONS.map((d) => (
+            <button
+              key={d} type="button"
+              className={`seg__btn ${form.difficulty === d ? 'seg__btn--active-neutral' : ''}`}
+              onClick={() => setForm({ ...form, difficulty: d })}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </label>
+
       <div className="quick-log__big-grid">
         <label>Time (min)<input type="number" min="0" step="0.5" autoFocus value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} /></label>
         <label>Attempted<input type="number" min="0" value={form.attempted} onChange={(e) => setForm({ ...form, attempted: e.target.value })} /></label>
@@ -90,8 +108,43 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
         <TagPicker value={form.mistakeTags} onChange={(tags) => setForm({ ...form, mistakeTags: tags })} options={MISTAKE_TAGS} />
       </div>
 
+      {sectionKey === 'VARC' && (
+        <>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setShowVocab((v) => !v)}>
+            {showVocab ? '− Hide vocabulary' : '+ Add vocabulary'}
+          </button>
+          {showVocab && (
+            <div className="vocab-editor">
+              <span className="row-card__tags-label">New vocabulary <span className="optional">(optional)</span></span>
+              {(form.vocab.length ? form.vocab : [{ word: '', meaning: '' }]).map((v, idx) => (
+                <div key={idx} className="vocab-editor__row">
+                  <input placeholder="word" value={v.word} onChange={(e) => {
+                    const newVocab = [...(form.vocab.length ? form.vocab : [{ word: '', meaning: '' }])];
+                    newVocab[idx] = { ...newVocab[idx], word: e.target.value };
+                    setForm({ ...form, vocab: newVocab });
+                  }} />
+                  <input placeholder="meaning" value={v.meaning} onChange={(e) => {
+                    const newVocab = [...(form.vocab.length ? form.vocab : [{ word: '', meaning: '' }])];
+                    newVocab[idx] = { ...newVocab[idx], meaning: e.target.value };
+                    setForm({ ...form, vocab: newVocab });
+                  }} />
+                  {form.vocab.length > 1 && (
+                    <button type="button" className="icon-btn" onClick={() => {
+                      setForm({ ...form, vocab: form.vocab.filter((_, i) => i !== idx) });
+                    }}>✕</button>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => {
+                setForm({ ...form, vocab: [...(form.vocab.length ? form.vocab : [{ word: '', meaning: '' }]), { word: '', meaning: '' }] });
+              }}>+ Add word</button>
+            </div>
+          )}
+        </>
+      )}
+
       <div className="quick-log__footer">
-        <span className="quick-log__stats">{stats.accuracy}% acc · {stats.marksPerMinute} mpm</span>
+        <span className="quick-log__stats">{stats.accuracy}% acc · {stats.marksPerMinute} mpm · {stats.marksLost} lost</span>
         <button type="submit" className="btn btn--primary" disabled={saving}>{saving ? 'Saving…' : 'Save & log next'}</button>
       </div>
       {status && <div className={`status status--${status.type}`}>{status.msg}</div>}

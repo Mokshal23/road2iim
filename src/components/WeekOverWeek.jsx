@@ -1,8 +1,10 @@
-import { SECTION_LIST } from '../constants';
+import { SECTIONS } from '../constants';
 import { aggregate } from '../utils/calc';
 import { weekRange, shiftWeek } from '../utils/dates';
 
-export default function WeekOverWeek({ entries, anchorDate }) {
+export default function WeekOverWeek({ entries, anchorDate, sectionKey }) {
+  const section = SECTIONS[sectionKey];
+  const subsections = section.subsections;
   const thisWeek = weekRange(anchorDate);
   const lastWeekAnchor = shiftWeek(anchorDate, -1);
   const lastWeek = weekRange(lastWeekAnchor);
@@ -10,23 +12,34 @@ export default function WeekOverWeek({ entries, anchorDate }) {
   const thisWeekEntries = entries.filter((e) => e.date >= thisWeek.start && e.date <= thisWeek.end);
   const lastWeekEntries = entries.filter((e) => e.date >= lastWeek.start && e.date <= lastWeek.end);
 
+  const cur = aggregate(thisWeekEntries);
+  const prev = aggregate(lastWeekEntries);
+  const hasCur = thisWeekEntries.length > 0;
+  const hasPrev = lastWeekEntries.length > 0;
+
   return (
     <div className="card">
       <h3>This week vs last week</h3>
-      <div className="wow-grid">
-        {SECTION_LIST.map((s) => {
-          const cur = aggregate(thisWeekEntries.filter((e) => e.section === s.key));
-          const prev = aggregate(lastWeekEntries.filter((e) => e.section === s.key));
-          const hasCur = thisWeekEntries.some((e) => e.section === s.key);
-          const hasPrev = lastWeekEntries.some((e) => e.section === s.key);
+      <div className="wow-card" style={{ borderColor: section.color }}>
+        <h4 style={{ color: section.color }}>{section.label}</h4>
+        <WowRow label="Accuracy" cur={hasCur ? cur.accuracy : null} prev={hasPrev ? prev.accuracy : null} suffix="%" />
+        <WowRow label="Marks/min" cur={hasCur ? cur.marksPerMinute : null} prev={hasPrev ? prev.marksPerMinute : null} />
+        <WowRow label="Marks lost" cur={hasCur ? (cur.marksLost ?? 0) : null} prev={hasPrev ? (prev.marksLost ?? 0) : null} higherIsBetter={false} />
+        <WowRow label="Questions attempted" cur={hasCur ? cur.attempted : null} prev={hasPrev ? prev.attempted : null} higherIsBetter={null} />
 
+        {subsections.length > 1 && subsections.map((sub) => {
+          const subCur = aggregate(thisWeekEntries.filter((e) => e.subsection === sub));
+          const subPrev = aggregate(lastWeekEntries.filter((e) => e.subsection === sub));
+          const hasSubCur = thisWeekEntries.some((e) => e.subsection === sub);
+          const hasSubPrev = lastWeekEntries.some((e) => e.subsection === sub);
           return (
-            <div key={s.key} className="wow-card" style={{ borderColor: s.color }}>
-              <h4 style={{ color: s.color }}>{s.label}</h4>
-              <WowRow label="Accuracy" cur={hasCur ? cur.accuracy : null} prev={hasPrev ? prev.accuracy : null} suffix="%" />
-              <WowRow label="Marks/min" cur={hasCur ? cur.marksPerMinute : null} prev={hasPrev ? prev.marksPerMinute : null} />
-              <WowRow label="Questions attempted" cur={hasCur ? cur.attempted : null} prev={hasPrev ? prev.attempted : null} higherIsBetter={null} />
-            </div>
+            <WowRow
+              key={sub}
+              label={`${sub} acc.`}
+              cur={hasSubCur ? subCur.accuracy : null}
+              prev={hasSubPrev ? subPrev.accuracy : null}
+              suffix="%"
+            />
           );
         })}
       </div>

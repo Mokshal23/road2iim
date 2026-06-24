@@ -13,6 +13,8 @@ import { useExamDate } from '../hooks/useExamDate';
 import { useAeonArticles } from '../hooks/useAeonArticles';
 import { useMockTests } from '../hooks/useMockTests';
 import { useTasks } from '../hooks/useTasks';
+import { useTodos } from '../hooks/useTodos';
+import { useReminders } from '../hooks/useReminders';
 import { firebaseConfigured } from '../firebase';
 
 const TABS = [
@@ -25,6 +27,7 @@ const TABS = [
 
 export default function Mentor() {
   const [tab, setTab] = useState('today');
+  const [dashboardSection, setDashboardSection] = useState('VARC');
 
   const { entries, loading, error } = useEntries();
   const { goals } = useGoals();
@@ -34,6 +37,8 @@ export default function Mentor() {
   const { articles } = useAeonArticles();
   const { mocks } = useMockTests();
   const { tasks } = useTasks();
+  const { todos } = useTodos();
+  const { reminders } = useReminders();
 
   if (!firebaseConfigured) return <ConfigWarning />;
 
@@ -56,14 +61,16 @@ export default function Mentor() {
         <TodayView
           entries={entries} aeonArticles={articles} mocks={mocks} targets={targets}
           tasks={tasks} examDate={examDate} examConfirmed={confirmed} readOnlyGoals={true}
+          todos={todos} reminders={reminders}
         />
       ) : tab === 'dashboard' ? (
         <Dashboard
           entries={entries} mocks={mocks} tasks={tasks} articles={articles}
           goals={goals} comments={comments} readOnly={true} canWriteComments={true} viewerRole="mentor"
+          sectionKey={dashboardSection} onSectionChange={setDashboardSection}
         />
       ) : tab === 'aeon' ? (
-        <AeonLog articles={articles} readOnly={true} />
+        <AeonLog articles={articles} readOnly={true} entries={entries} />
       ) : tab === 'mocks' ? (
         <MockTests mocks={mocks} readOnly={true} />
       ) : (

@@ -1,12 +1,14 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { SECTION_LIST } from '../constants';
 
-export default function SectionBalance({ entries }) {
-  const data = SECTION_LIST.map((s) => ({
-    name: s.label,
-    value: entries.filter((e) => e.section === s.key).reduce((acc, e) => acc + (Number(e.timeTaken) || 0), 0),
-    color: s.color,
-  }));
+export default function SectionBalance({ entries, aeonArticles = [] }) {
+  const data = SECTION_LIST.map((s) => {
+    let value = entries.filter((e) => e.section === s.key).reduce((acc, e) => acc + (Number(e.timeTaken) || 0), 0);
+    if (s.key === 'VARC') {
+      value += (aeonArticles || []).reduce((acc, a) => acc + (Number(a.timeTaken) || 0), 0);
+    }
+    return { name: s.key === 'VARC' ? 'VARC (incl. reading)' : s.label, value, color: s.color };
+  });
   const total = data.reduce((a, d) => a + d.value, 0);
 
   return (

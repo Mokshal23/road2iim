@@ -16,6 +16,8 @@ import { useExamDate } from '../hooks/useExamDate';
 import { useAeonArticles } from '../hooks/useAeonArticles';
 import { useMockTests } from '../hooks/useMockTests';
 import { useTasks } from '../hooks/useTasks';
+import { useTodos } from '../hooks/useTodos';
+import { useReminders } from '../hooks/useReminders';
 import { firebaseConfigured } from '../firebase';
 
 const TABS = [
@@ -29,6 +31,7 @@ const TABS = [
 export default function Home() {
   const [tab, setTab] = useState('today');
   const [logSection, setLogSection] = useState('VARC');
+  const [dashboardSection, setDashboardSection] = useState('VARC');
   const [quickMode, setQuickMode] = useState(false);
 
   const { entries, loading, error } = useEntries();
@@ -39,6 +42,8 @@ export default function Home() {
   const { articles } = useAeonArticles();
   const { mocks } = useMockTests();
   const { tasks } = useTasks();
+  const { todos } = useTodos();
+  const { reminders } = useReminders();
 
   if (!firebaseConfigured) return <ConfigWarning />;
 
@@ -59,6 +64,7 @@ export default function Home() {
         <TodayView
           entries={entries} aeonArticles={articles} mocks={mocks} targets={targets}
           tasks={tasks} examDate={examDate} examConfirmed={confirmed} readOnlyGoals={false}
+          todos={todos} reminders={reminders}
         />
       ) : tab === 'log' ? (
         <>
@@ -79,9 +85,10 @@ export default function Home() {
         <Dashboard
           entries={entries} mocks={mocks} tasks={tasks} articles={articles}
           goals={goals} comments={comments} readOnly={false} canWriteComments={false} viewerRole="student"
+          sectionKey={dashboardSection} onSectionChange={setDashboardSection}
         />
       ) : tab === 'aeon' ? (
-        <AeonLog articles={articles} readOnly={false} />
+        <AeonLog articles={articles} readOnly={false} entries={entries} />
       ) : (
         <MockTests mocks={mocks} readOnly={false} />
       )}

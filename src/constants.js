@@ -90,6 +90,7 @@ export const MAX_POSITIVE_TAGS = 3;
 export const MOCK_SOURCES = ['SimCAT', 'Cracku', 'IMS Mock', 'Other'];
 
 export const AEON_DIFFICULTY = ['Easy', 'Medium', 'Hard'];
+export const DIFFICULTY_OPTIONS = ['Easy', 'Medium', 'Hard'];
 
 export const TASK_SECTIONS = [...SECTION_LIST.map((s) => s.key), 'General'];
 

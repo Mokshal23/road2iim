@@ -721,3 +721,67 @@ textarea {
 /* Good tags (positive) — visually distinct from mistake tags */
 .tag--good { border-color: var(--success); }
 .tag--good.tag--active { background: var(--success); border-color: var(--success); color: #15161a; }
+
+/* Reminders card styling */
+.reminder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.reminder-item--overdue {
+  color: var(--danger);
+  border-color: rgba(224, 86, 107, 0.2);
+  background: rgba(224, 86, 107, 0.05);
+}
+.reminder-item--today {
+  color: var(--amber);
+  border-color: rgba(232, 163, 61, 0.2);
+  background: rgba(232, 163, 61, 0.05);
+}
+.reminder-item__text {
+  flex: 1;
+}
+.reminder-item__date {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+.reminder-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  flex-wrap: wrap;
+}
+.reminder-form input[type="text"] {
+  flex: 1;
+  min-width: 180px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+.reminder-form input[type="date"] {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+

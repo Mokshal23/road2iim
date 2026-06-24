@@ -3,8 +3,8 @@ import { formatPretty } from '../utils/dates';
 import { toggleEntryFlag } from '../hooks/useEntries';
 import { toggleMockFlag } from '../hooks/useMockTests';
 
-export default function FlaggedForDiscussion({ entries, mocks }) {
-  const flaggedEntries = entries.filter((e) => e.flagged);
+export default function FlaggedForDiscussion({ entries, mocks, sectionKey }) {
+  const flaggedEntries = entries.filter((e) => e.flagged && e.section === sectionKey);
   const flaggedMocks = mocks.filter((m) => m.flagged);
   const total = flaggedEntries.length + flaggedMocks.length;
 

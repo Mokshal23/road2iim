@@ -31,8 +31,8 @@ function escapeCSV(value) {
 export function entriesToRows(entries) {
   return entries.map((e) => ({
     date: e.date, section: e.section, subsection: e.subsection, topic: e.topic,
-    label: e.label, timeTaken: e.timeTaken, attempted: e.attempted, correct: e.correct,
-    wrong: e.wrong, accuracy: e.accuracy, marks: e.marks, marksPerMinute: e.marksPerMinute,
+    label: e.label, difficulty: e.difficulty || '', timeTaken: e.timeTaken, attempted: e.attempted, correct: e.correct,
+    wrong: e.wrong, accuracy: e.accuracy, marks: e.marks, marksLost: e.marksLost || 0, marksPerMinute: e.marksPerMinute,
     goodTags: (e.goodTags || []).join('; '), mistakeTags: (e.mistakeTags || []).join('; '),
     source: e.source, notes: e.notes,
   }));
@@ -41,6 +41,7 @@ export function entriesToRows(entries) {
 export function aeonToRows(articles) {
   return articles.map((a) => ({
     date: a.date, title: a.title, topic: a.topic, difficulty: a.difficulty,
+    link: a.link || '', timeTaken: a.timeTaken || 0, wordCount: a.wordCount || 0, readingSpeed: a.readingSpeed || 0,
     summary: a.summary, vocab: (a.vocab || []).map((v) => `${v.word}=${v.meaning}`).join('; '),
   }));
 }

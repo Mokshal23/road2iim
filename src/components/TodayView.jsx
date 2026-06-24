@@ -2,9 +2,14 @@ import ExamCountdown from './ExamCountdown';
 import DailyGoalMeter from './DailyGoalMeter';
 import StreakHeatmap from './StreakHeatmap';
 import TaskBoard from './TaskBoard';
+import SectionBalance from './SectionBalance';
+import PersonalTodos from './PersonalTodos';
+import Reminders from './Reminders';
+import { todayStr, weekRange } from '../utils/dates';
 
 export default function TodayView({
-  entries, aeonArticles, mocks, targets, tasks, examDate, examConfirmed, readOnlyGoals = false,
+  entries, aeonArticles = [], mocks = [], targets, tasks = [], examDate, examConfirmed, readOnlyGoals = false,
+  todos = [], reminders = [],
 }) {
   const activeDates = [
     ...entries.map((e) => e.date),
@@ -12,12 +17,23 @@ export default function TodayView({
     ...mocks.map((m) => m.date),
   ];
 
+  const today = todayStr();
+  const { start, end } = weekRange(today);
+  const weekEntries = entries.filter((e) => e.date >= start && e.date <= end);
+  const weekArticles = aeonArticles.filter((a) => a.date >= start && a.date <= end);
+
   return (
     <div className="dashboard">
       <ExamCountdown examDate={examDate} confirmed={examConfirmed} targets={targets} entries={entries} readOnly={readOnlyGoals} />
       <DailyGoalMeter entries={entries} aeonArticles={aeonArticles} targets={targets} readOnly={readOnlyGoals} />
+      <SectionBalance entries={weekEntries} aeonArticles={weekArticles} />
+      <div className="dashboard__row">
+        <PersonalTodos todos={todos} />
+        <Reminders reminders={reminders} />
+      </div>
       <TaskBoard tasks={tasks} canManage={false} />
       <StreakHeatmap activeDates={activeDates} />
     </div>
   );
 }
+

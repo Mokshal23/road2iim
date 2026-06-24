@@ -1,30 +1,39 @@
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
-import { SECTION_LIST } from '../constants';
+import { SECTIONS } from '../constants';
 import { daysBetween, formatShort, weekRange, shiftWeek, formatPretty } from '../utils/dates';
 import { aggregate } from '../utils/calc';
 
-export default function WeeklyTrends({ entries, anchorDate, onAnchorChange }) {
+export default function WeeklyTrends({ entries, anchorDate, onAnchorChange, sectionKey }) {
+  const section = SECTIONS[sectionKey];
+  const subsections = section.subsections;
   const { start, end } = weekRange(anchorDate);
   const days = daysBetween(start, end);
 
+  const subColors = subsections.length === 1
+    ? [section.color]
+    : [section.color, section.color + '99'];
+
   const data = days.map((day) => {
     const row = { day: formatShort(day), fullDate: day };
-    for (const s of SECTION_LIST) {
-      const dayEntries = entries.filter((e) => e.date === day && e.section === s.key);
+    for (const sub of subsections) {
+      const dayEntries = entries.filter((e) => e.date === day && e.subsection === sub);
       const agg = aggregate(dayEntries);
-      row[`${s.key}_accuracy`] = dayEntries.length ? agg.accuracy : null;
-      row[`${s.key}_mpm`] = dayEntries.length ? agg.marksPerMinute : null;
+      const key = sub.replace(/\s+/g, '_');
+      row[`${key}_accuracy`] = dayEntries.length ? agg.accuracy : null;
+      row[`${key}_mpm`] = dayEntries.length ? agg.marksPerMinute : null;
     }
     return row;
   });
 
   const weekEntries = entries.filter((e) => e.date >= start && e.date <= end);
-  const summaries = SECTION_LIST.map((s) => ({
-    ...s,
-    agg: aggregate(weekEntries.filter((e) => e.section === s.key)),
-    count: weekEntries.filter((e) => e.section === s.key).length,
+  const summaries = subsections.map((sub, i) => ({
+    sub,
+    key: sub.replace(/\s+/g, '_'),
+    color: subColors[i],
+    agg: aggregate(weekEntries.filter((e) => e.subsection === sub)),
+    count: weekEntries.filter((e) => e.subsection === sub).length,
   }));
 
   return (
@@ -41,7 +50,7 @@ export default function WeeklyTrends({ entries, anchorDate, onAnchorChange }) {
       <div className="summary-row">
         {summaries.map((s) => (
           <div key={s.key} className="summary-pill" style={{ borderColor: s.color }}>
-            <span className="summary-pill__label" style={{ color: s.color }}>{s.label}</span>
+            <span className="summary-pill__label" style={{ color: s.color }}>{s.sub}</span>
             <span className="summary-pill__stat">{s.count ? `${s.agg.accuracy}%` : '—'} acc</span>
             <span className="summary-pill__stat">{s.count ? s.agg.marksPerMinute : '—'} mpm</span>
             <span className="summary-pill__stat">{s.agg.timeTaken}m logged</span>
@@ -58,12 +67,12 @@ export default function WeeklyTrends({ entries, anchorDate, onAnchorChange }) {
             <YAxis stroke="var(--text-secondary)" fontSize={12} domain={[0, 100]} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            {SECTION_LIST.map((s) => (
+            {summaries.map((s) => (
               <Line
                 key={s.key}
                 type="monotone"
                 dataKey={`${s.key}_accuracy`}
-                name={s.label}
+                name={s.sub}
                 stroke={s.color}
                 strokeWidth={2}
                 dot={{ r: 3 }}
@@ -83,12 +92,12 @@ export default function WeeklyTrends({ entries, anchorDate, onAnchorChange }) {
             <YAxis stroke="var(--text-secondary)" fontSize={12} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            {SECTION_LIST.map((s) => (
+            {summaries.map((s) => (
               <Line
                 key={s.key}
                 type="monotone"
                 dataKey={`${s.key}_mpm`}
-                name={s.label}
+                name={s.sub}
                 stroke={s.color}
                 strokeWidth={2}
                 dot={{ r: 3 }}

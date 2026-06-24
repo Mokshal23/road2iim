@@ -3,13 +3,16 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line, Legend,
 } from 'recharts';
-import { MISTAKE_TAGS } from '../constants';
+import { MISTAKE_TAGS, SECTIONS } from '../constants';
 import { weekRange, formatShort } from '../utils/dates';
 
 const TREND_COLORS = ['#E0566B', '#E8A33D', '#5B8DEF', '#2BB3A3'];
 
-export default function MistakePatterns({ weekEntries, allEntries }) {
+export default function MistakePatterns({ weekEntries, allEntries, sectionKey }) {
   const [view, setView] = useState('week');
+
+  const sectionWeek = weekEntries.filter((e) => e.section === sectionKey);
+  const sectionAll = allEntries.filter((e) => e.section === sectionKey);
 
   return (
     <div className="card">
@@ -20,12 +23,13 @@ export default function MistakePatterns({ weekEntries, allEntries }) {
           <button className={`seg__btn ${view === 'trend' ? 'seg__btn--active-neutral' : ''}`} onClick={() => setView('trend')}>All-time trend</button>
         </div>
       </div>
-      {view === 'week' ? <ThisWeekView entries={weekEntries} /> : <TrendView entries={allEntries} />}
+      {view === 'week' ? <ThisWeekView entries={sectionWeek} sectionKey={sectionKey} /> : <TrendView entries={sectionAll} sectionKey={sectionKey} />}
     </div>
   );
 }
 
-function ThisWeekView({ entries }) {
+function ThisWeekView({ entries, sectionKey }) {
+  const sectionLabel = SECTIONS[sectionKey]?.label || sectionKey;
   const counts = MISTAKE_TAGS.map((tag) => ({
     tag,
     count: entries.reduce((acc, e) => acc + ((e.mistakeTags || []).includes(tag) ? 1 : 0), 0),
@@ -38,7 +42,7 @@ function ThisWeekView({ entries }) {
   return (
     <>
       <p className="insight">
-        <strong>{top.tag}</strong> is your most frequent issue this week — {top.count}× across all sections.
+        <strong>{top.tag}</strong> is your most frequent {sectionLabel} issue this week — {top.count}× across sessions.
       </p>
       <ResponsiveContainer width="100%" height={Math.max(160, counts.length * 34)}>
         <BarChart data={counts} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -57,14 +61,15 @@ function ThisWeekView({ entries }) {
   );
 }
 
-function TrendView({ entries }) {
+function TrendView({ entries, sectionKey }) {
+  const sectionLabel = SECTIONS[sectionKey]?.label || sectionKey;
   const { data, topTags } = useMemo(() => buildWeeklyTrend(entries), [entries]);
 
   if (data.length === 0) return <p className="empty">Not enough history yet — keep logging and this will fill in.</p>;
 
   return (
     <>
-      <p className="insight">Weekly count of your top {topTags.length} recurring mistake tags, across your full history.</p>
+      <p className="insight">Weekly count of your top {topTags.length} recurring {sectionLabel} mistake tags, across your full history.</p>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data} margin={{ top: 5, right: 12, left: -12, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />

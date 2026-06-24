@@ -1,8 +1,8 @@
-import { SECTION_LIST, MISTAKE_TAGS } from '../constants';
+import { SECTIONS, MISTAKE_TAGS } from '../constants';
 import { aggregate } from '../utils/calc';
 import { weekRange, shiftWeek, todayStr, formatPretty } from '../utils/dates';
 
-export default function WeeklyDigest({ entries, tasks }) {
+export default function WeeklyDigest({ entries, tasks, sectionKey }) {
   const today = todayStr();
   const thisWeek = weekRange(today);
   const lastWeek = weekRange(shiftWeek(today, -1));
@@ -10,14 +10,17 @@ export default function WeeklyDigest({ entries, tasks }) {
   const thisWeekEntries = entries.filter((e) => e.date >= thisWeek.start && e.date <= thisWeek.end);
   const lastWeekEntries = entries.filter((e) => e.date >= lastWeek.start && e.date <= lastWeek.end);
 
-  const sectionLines = SECTION_LIST.map((s) => {
-    const cur = aggregate(thisWeekEntries.filter((e) => e.section === s.key));
-    const prev = aggregate(lastWeekEntries.filter((e) => e.section === s.key));
-    const hasCur = thisWeekEntries.some((e) => e.section === s.key);
-    const hasPrev = lastWeekEntries.some((e) => e.section === s.key);
+  const section = SECTIONS[sectionKey];
+  const subsections = section.subsections;
+
+  const subsectionLines = subsections.map((sub) => {
+    const cur = aggregate(thisWeekEntries.filter((e) => e.subsection === sub));
+    const prev = aggregate(lastWeekEntries.filter((e) => e.subsection === sub));
+    const hasCur = thisWeekEntries.some((e) => e.subsection === sub);
+    const hasPrev = lastWeekEntries.some((e) => e.subsection === sub);
     if (!hasCur) return null;
     const delta = hasPrev ? Math.round((cur.accuracy - prev.accuracy) * 10) / 10 : null;
-    return { section: s, accuracy: cur.accuracy, delta };
+    return { subsection: sub, accuracy: cur.accuracy, delta };
   }).filter(Boolean);
 
   const tagCounts = MISTAKE_TAGS.map((tag) => ({
@@ -53,10 +56,10 @@ export default function WeeklyDigest({ entries, tasks }) {
         {tasksCompletedThisWeek > 0 && <> {tasksCompletedThisWeek} mentor task{tasksCompletedThisWeek === 1 ? '' : 's'} closed out.</>}
       </p>
       <ul className="digest-card__list">
-        {sectionLines.map(({ section, accuracy, delta }) => (
-          <li key={section.key}>
+        {subsectionLines.map(({ subsection, accuracy, delta }) => (
+          <li key={subsection}>
             <span className="dot" style={{ background: section.color }} />
-            <strong>{section.label}</strong>: {accuracy}% accuracy
+            <strong>{subsection}</strong>: {accuracy}% accuracy
             {delta !== null && delta !== 0 && (
               <span className={delta > 0 ? 'digest-delta digest-delta--up' : 'digest-delta digest-delta--down'}>
                 {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}% vs last week

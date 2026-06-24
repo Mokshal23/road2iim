@@ -12,10 +12,13 @@ function blankForm() {
     difficulty: 'Medium',
     summary: '',
     vocab: [{ word: '', meaning: '' }],
+    link: '',
+    timeTaken: '',
+    wordCount: '',
   };
 }
 
-export default function AeonLog({ articles, readOnly = false }) {
+export default function AeonLog({ articles, entries = [], readOnly = false }) {
   const [tab, setTab] = useState('log');
   const [editing, setEditing] = useState(null);
 
@@ -32,7 +35,7 @@ export default function AeonLog({ articles, readOnly = false }) {
           <ArticleList articles={articles} readOnly={readOnly} onEdit={setEditing} />
         </>
       ) : (
-        <VocabBank articles={articles} />
+        <VocabBank articles={articles} entries={entries} />
       )}
 
       {editing && (
@@ -52,6 +55,9 @@ function AeonForm({ editArticle = null, onDone = null }) {
     difficulty: editArticle.difficulty,
     summary: editArticle.summary || '',
     vocab: editArticle.vocab?.length ? editArticle.vocab : [{ word: '', meaning: '' }],
+    link: editArticle.link || '',
+    timeTaken: editArticle.timeTaken || '',
+    wordCount: editArticle.wordCount || '',
   } : blankForm());
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
@@ -109,7 +115,14 @@ function AeonForm({ editArticle = null, onDone = null }) {
             {AEON_DIFFICULTY.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </label>
+        <label>Link <span className="optional">(optional)</span><input type="url" value={form.link} placeholder="https://..." onChange={(e) => setForm({ ...form, link: e.target.value })} /></label>
+        <label>Time taken (min)<input type="number" min="0" step="0.5" value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} /></label>
+        <label>Word count<input type="number" min="0" value={form.wordCount} onChange={(e) => setForm({ ...form, wordCount: e.target.value })} /></label>
       </div>
+
+      {Number(form.timeTaken) > 0 && Number(form.wordCount) > 0 && (
+        <p className="insight">Reading speed: <strong>{Math.round(Number(form.wordCount) / Number(form.timeTaken))} wpm</strong></p>
+      )}
 
       <label className="aeon-summary">
         Summary <span className="optional">(2-3 lines, in your own words)</span>
@@ -154,7 +167,9 @@ function ArticleList({ articles, readOnly, onEdit }) {
         <div key={a.id} className="aeon-card">
           <div className="aeon-card__head">
             <strong>{a.title}</strong>
-            <span className="aeon-card__meta">{a.topic} · {a.difficulty} · {formatPretty(a.date)}</span>
+            <span className="aeon-card__meta">{a.topic} · {a.difficulty}{a.timeTaken ? ` · ${a.timeTaken} min` : ''} · {formatPretty(a.date)}</span>
+            {a.readingSpeed > 0 && <span className="vocab-chip">{a.readingSpeed} wpm</span>}
+            {a.link && <a href={a.link} target="_blank" rel="noopener noreferrer" className="icon-btn">🔗</a>}
             {!readOnly && (
               <>
                 <button className="icon-btn" onClick={() => onEdit(a)} aria-label="Edit">✎</button>
@@ -176,7 +191,7 @@ function ArticleList({ articles, readOnly, onEdit }) {
   );
 }
 
-function VocabBank({ articles }) {
+function VocabBank({ articles, entries = [] }) {
   const [search, setSearch] = useState('');
   const words = useMemo(() => {
     const all = [];
@@ -185,8 +200,13 @@ function VocabBank({ articles }) {
         if (v.word) all.push({ ...v, articleTitle: a.title, date: a.date });
       }
     }
+    for (const e of (entries || [])) {
+      for (const v of e.vocab || []) {
+        if (v.word) all.push({ ...v, articleTitle: `Practice: ${e.topic}, ${e.date}`, date: e.date });
+      }
+    }
     return all.sort((a, b) => a.word.localeCompare(b.word));
-  }, [articles]);
+  }, [articles, entries]);
 
   const filtered = words.filter((w) => w.word.toLowerCase().includes(search.toLowerCase()));
 

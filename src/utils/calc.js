@@ -9,6 +9,7 @@ export function computeStats({ attempted, correct, timeTaken, negativeMarking })
   const time = Number(timeTaken) || 0;
 
   const accuracy = att > 0 ? (cor / att) * 100 : 0;
+  const marksLost = negativeMarking ? wrong * 1 : 0;
   const marks = negativeMarking ? cor * 3 - wrong * 1 : cor * 3;
   const marksPerMinute = time > 0 ? marks / time : 0;
   const timePerQuestion = att > 0 ? time / att : 0;
@@ -20,6 +21,7 @@ export function computeStats({ attempted, correct, timeTaken, negativeMarking })
     timeTaken: time,
     accuracy: round(accuracy),
     marks: round(marks),
+    marksLost: round(marksLost),
     marksPerMinute: round(marksPerMinute),
     timePerQuestion: round(timePerQuestion),
   };
@@ -36,12 +38,14 @@ export function aggregate(entries) {
   const wrong = sum(entries, 'wrong');
   const time = sum(entries, 'timeTaken');
   const marks = sum(entries, 'marks');
+  const marksLost = sum(entries, 'marksLost');
   return {
     attempted: att,
     correct: cor,
     wrong,
     timeTaken: round(time),
     marks: round(marks),
+    marksLost: round(marksLost),
     accuracy: att > 0 ? round((cor / att) * 100) : 0,
     marksPerMinute: time > 0 ? round(marks / time) : 0,
   };

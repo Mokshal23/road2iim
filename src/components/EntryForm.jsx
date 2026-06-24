@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS } from '../constants';
+import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS, DIFFICULTY_OPTIONS } from '../constants';
 import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
@@ -17,9 +17,11 @@ function blankRow(section, defaults = {}) {
     correct: '',
     negativeMarking: true,
     source: defaults.source || SOURCES[0],
+    difficulty: 'Medium',
     mistakeTags: [],
     goodTags: [],
     notes: '',
+    vocab: [],
   };
 }
 
@@ -207,6 +209,21 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
           </select>
         </label>
 
+        <label>
+          Difficulty
+          <div className="seg">
+            {DIFFICULTY_OPTIONS.map((d) => (
+              <button
+                key={d} type="button"
+                className={`seg__btn ${row.difficulty === d ? 'seg__btn--active-neutral' : ''}`}
+                onClick={() => onChange({ difficulty: d })}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </label>
+
         <label className="checkbox">
           <input
             type="checkbox"
@@ -226,6 +243,34 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
         />
       </label>
 
+      {sectionKey === 'VARC' && (
+        <div className="vocab-editor">
+          <span className="row-card__tags-label">New vocabulary <span className="optional">(optional)</span></span>
+          {(row.vocab || [{ word: '', meaning: '' }]).map((v, idx) => (
+            <div key={idx} className="vocab-editor__row">
+              <input placeholder="word" value={v.word} onChange={(e) => {
+                const newVocab = [...(row.vocab || [{ word: '', meaning: '' }])];
+                newVocab[idx] = { ...newVocab[idx], word: e.target.value };
+                onChange({ vocab: newVocab });
+              }} />
+              <input placeholder="meaning" value={v.meaning} onChange={(e) => {
+                const newVocab = [...(row.vocab || [{ word: '', meaning: '' }])];
+                newVocab[idx] = { ...newVocab[idx], meaning: e.target.value };
+                onChange({ vocab: newVocab });
+              }} />
+              {(row.vocab || []).length > 1 && (
+                <button type="button" className="icon-btn" onClick={() => {
+                  onChange({ vocab: (row.vocab || []).filter((_, i) => i !== idx) });
+                }}>✕</button>
+              )}
+            </div>
+          ))}
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => {
+            onChange({ vocab: [...(row.vocab || [{ word: '', meaning: '' }]), { word: '', meaning: '' }] });
+          }}>+ Add word</button>
+        </div>
+      )}
+
       <div className="row-card__tags">
         <span className="row-card__tags-label">What went well <span className="optional">(optional, max 3)</span>:</span>
         <TagPicker value={row.goodTags} onChange={(tags) => onChange({ goodTags: tags })} options={POSITIVE_TAGS} good />
@@ -239,6 +284,7 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
       <div className="row-card__stats">
         <Stat label="Accuracy" value={`${stats.accuracy}%`} />
         <Stat label="Marks" value={stats.marks} />
+        <Stat label="Lost" value={stats.marksLost} />
         <Stat label="Marks/min" value={stats.marksPerMinute} />
         <Stat label="Min/question" value={stats.timePerQuestion} />
       </div>

@@ -37,7 +37,8 @@ export function useEntries() {
 // rows: array of raw row inputs sharing a date. Computes derived stats and
 // writes each as its own document so the dashboard can slice by anything.
 export async function saveSessionRows(rows) {
-  const writes = rows.map((row) => {
+  const sessionId = crypto.randomUUID();
+  const writes = rows.map((row, idx) => {
     const stats = computeStats(row);
     return addDoc(collection(db, COLLECTION), {
       date: row.date,
@@ -50,6 +51,10 @@ export async function saveSessionRows(rows) {
       goodTags: row.goodTags || [],
       notes: row.notes || '',
       negativeMarking: Boolean(row.negativeMarking),
+      vocab: row.vocab || [],
+      difficulty: row.difficulty || 'Medium',
+      sessionId,
+      sessionSeq: idx,
       ...stats,
       createdAt: serverTimestamp(),
     });
@@ -69,7 +74,10 @@ export async function updateEntry(id, patch) {
     attempted: patch.attempted, correct: patch.correct,
     timeTaken: patch.timeTaken, negativeMarking: patch.negativeMarking,
   });
-  await updateDoc(doc(db, COLLECTION, id), { ...patch, ...stats });
+  const extra = {};
+  if (patch.vocab !== undefined) extra.vocab = patch.vocab;
+  if (patch.difficulty !== undefined) extra.difficulty = patch.difficulty;
+  await updateDoc(doc(db, COLLECTION, id), { ...patch, ...stats, ...extra });
 }
 
 // Mentor-side "flag for discussion" toggle. Older entries simply don't have

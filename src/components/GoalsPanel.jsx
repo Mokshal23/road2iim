@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SECTION_LIST, SECTIONS } from '../constants';
+import { SECTIONS } from '../constants';
 import { addGoal, removeGoal } from '../hooks/useGoals';
 import { aggregate } from '../utils/calc';
 import { todayStr, formatPretty } from '../utils/dates';
@@ -10,16 +10,18 @@ const METRICS = {
   timePerQuestion: { label: 'Minutes / question', better: 'lower' },
 };
 
-export default function GoalsPanel({ goals, entries, readOnly = false }) {
-  const [form, setForm] = useState({ section: 'VARC', metric: 'accuracy', target: '', deadline: '', label: '' });
+export default function GoalsPanel({ goals, entries, readOnly = false, sectionKey }) {
+  const [form, setForm] = useState({ metric: 'accuracy', target: '', deadline: '', label: '' });
   const [saving, setSaving] = useState(false);
+
+  const sectionGoals = goals.filter((g) => g.section === sectionKey);
 
   async function handleAdd(e) {
     e.preventDefault();
     if (!form.target || !form.deadline) return;
     setSaving(true);
-    await addGoal({ ...form, target: Number(form.target) });
-    setForm({ section: 'VARC', metric: 'accuracy', target: '', deadline: '', label: '' });
+    await addGoal({ ...form, section: sectionKey, target: Number(form.target) });
+    setForm({ metric: 'accuracy', target: '', deadline: '', label: '' });
     setSaving(false);
   }
 
@@ -28,13 +30,13 @@ export default function GoalsPanel({ goals, entries, readOnly = false }) {
 
   return (
     <div className="card">
-      <h3>Goals & progress</h3>
+      <h3>Goals &amp; progress</h3>
 
-      {goals.length === 0 ? (
+      {sectionGoals.length === 0 ? (
         <p className="empty">No goals set yet.</p>
       ) : (
         <div className="goals-list">
-          {goals.map((g) => {
+          {sectionGoals.map((g) => {
             const sectionEntries = last7.filter((e) => e.section === g.section);
             const agg = aggregate(sectionEntries);
             const current = g.metric === 'timePerQuestion'
@@ -75,13 +77,7 @@ export default function GoalsPanel({ goals, entries, readOnly = false }) {
       {!readOnly && (
         <form className="goal-form" onSubmit={handleAdd}>
           <h4>Add a goal</h4>
-          <div className="goal-form__grid">
-            <label>
-              Section
-              <select value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })}>
-                {SECTION_LIST.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-              </select>
-            </label>
+          <div className="goal-form__grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             <label>
               Metric
               <select value={form.metric} onChange={(e) => setForm({ ...form, metric: e.target.value })}>
