@@ -37,3 +37,9 @@ All analytical upgrades, UI styling changes, robust AI auto-filling, mobile resp
 - [x] Add auto-definer state, method, and buttons to [EntryForm.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/EntryForm.jsx) and [QuickLogForm.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/QuickLogForm.jsx).
 - [x] Integrate `AIScreenshotLog` in [MockTests.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/MockTests.jsx) to autofill overall score, percentile, and sectional splits.
 - [x] Make AI auto-definer consistent across the application: integrate the `✨` button inside the Aeon Log form ([AeonLog.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/AeonLog.jsx)) and the Edit Entry modal ([EditEntryModal.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/EditEntryModal.jsx)).
+
+## Group G: AI Mistake Analyzer
+- [x] Create `AIMistakeInsights` subcomponent and rendering logic in [MistakePatterns.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/MistakePatterns.jsx).
+- [x] Implement Gemini API calling logic with prompt formatting & model fallbacks in [MistakePatterns.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/MistakePatterns.jsx).
+- [x] Integrate tab selector in [MistakePatterns.jsx](file:///c:/Users/Mokshal%20Shah/Documents/antigravity-road2iim/road2iim/src/components/MistakePatterns.jsx) header to include `🧠 AI Insights`.
+- [x] Verify compilation and push to Git.
