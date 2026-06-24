@@ -184,21 +184,32 @@ export async function parseScreenshotWithGemini(base64Image, apiKey) {
 async function callGeminiText(modelName, prompt, apiKey) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
-    })
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || `API call failed for ${modelName}`);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `API call failed for ${modelName}`);
+    }
+
+    const result = await response.json();
+    return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
-
-  const result = await response.json();
-  return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 export async function defineWordWithGemini(word, apiKey) {

@@ -24,14 +24,19 @@ ${JSON.stringify(activitySummary, null, 2)}
 
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }]
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errJson = await response.json();
@@ -42,6 +47,7 @@ ${JSON.stringify(activitySummary, null, 2)}
       const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
       return text.trim();
     } catch (err) {
+      clearTimeout(timeoutId);
       console.warn(`AI Coach generation failed with ${model}:`, err);
       lastError = err;
     }
