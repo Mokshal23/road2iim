@@ -6,6 +6,7 @@ import { MOCK_SOURCES, SECTIONS } from '../constants';
 import { addMockTest, deleteMockTest, toggleMockFlag } from '../hooks/useMockTests';
 import { formatPretty, formatShort, todayStr } from '../utils/dates';
 import EditMockModal from './EditMockModal';
+import AIScreenshotLog from './AIScreenshotLog';
 
 const SECTION_KEYS = ['VARC', 'LRDI', 'QA'];
 
@@ -90,6 +91,49 @@ function MockForm() {
     setSections((s) => ({ ...s, [key]: { ...s[key], ...patch } }));
   }
 
+  function handleAutofill(parsed) {
+    if (parsed.type === 'mock') {
+      if (parsed.source) {
+        const match = MOCK_SOURCES.find((s) => s.toLowerCase() === parsed.source.toLowerCase());
+        setSource(match || parsed.source);
+      }
+      if (parsed.label) setLabel(parsed.label);
+      if (parsed.overallScore !== undefined && parsed.overallScore !== null) setOverallScore(String(parsed.overallScore));
+      if (parsed.overallPercentile !== undefined && parsed.overallPercentile !== null) setOverallPercentile(String(parsed.overallPercentile));
+
+      const newSections = { ...sections };
+      if (parsed.sections) {
+        SECTION_KEYS.forEach((key) => {
+          if (parsed.sections[key]) {
+            newSections[key] = {
+              attempted: parsed.sections[key].attempted !== undefined && parsed.sections[key].attempted !== null ? String(parsed.sections[key].attempted) : newSections[key].attempted,
+              correct: parsed.sections[key].correct !== undefined && parsed.sections[key].correct !== null ? String(parsed.sections[key].correct) : newSections[key].correct,
+              timeTaken: parsed.sections[key].timeTaken !== undefined && parsed.sections[key].timeTaken !== null ? String(parsed.sections[key].timeTaken) : newSections[key].timeTaken,
+            };
+          }
+        });
+      }
+      setSections(newSections);
+      setStatus({ type: 'success', msg: 'Autofilled mock test details! Please review.' });
+    } else if (parsed.type === 'sectional') {
+      const key = parsed.section;
+      if (key && SECTION_KEYS.includes(key)) {
+        const newSections = { ...sections };
+        newSections[key] = {
+          attempted: parsed.attempted !== undefined && parsed.attempted !== null ? String(parsed.attempted) : newSections[key].attempted,
+          correct: parsed.correct !== undefined && parsed.correct !== null ? String(parsed.correct) : newSections[key].correct,
+          timeTaken: parsed.timeTaken !== undefined && parsed.timeTaken !== null ? String(parsed.timeTaken) : newSections[key].timeTaken,
+        };
+        setSections(newSections);
+        if (parsed.source) {
+          const match = MOCK_SOURCES.find((s) => s.toLowerCase() === parsed.source.toLowerCase());
+          setSource(match || parsed.source);
+        }
+        setStatus({ type: 'success', msg: `Autofilled ${key} sectional details! Please review.` });
+      }
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
@@ -106,7 +150,9 @@ function MockForm() {
   }
 
   return (
-    <form className="card" onSubmit={handleSubmit}>
+    <div className="mock-form-container" style={{ marginBottom: '20px' }}>
+      <AIScreenshotLog onAutofill={handleAutofill} />
+      <form className="card" onSubmit={handleSubmit}>
       <h3>Log a mock test</h3>
       <div className="row-card__grid">
         <label>Date<input type="date" max={todayStr()} value={date} onChange={(e) => setDate(e.target.value)} required /></label>
@@ -139,6 +185,7 @@ function MockForm() {
       <button type="submit" className="btn btn--primary" disabled={saving}>{saving ? 'Saving…' : 'Save mock'}</button>
       {status && <div className={`status status--${status.type}`}>{status.msg}</div>}
     </form>
+    </div>
   );
 }
 

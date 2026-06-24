@@ -5,6 +5,7 @@ import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
 import TagPicker from './TagPicker';
 import AIScreenshotLog from './AIScreenshotLog';
+import { defineWordWithGemini } from '../utils/ai';
 
 function defaultsFrom(entries, sectionKey) {
   const last = entries.find((e) => e.section === sectionKey);
@@ -30,6 +31,28 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
   const [status, setStatus] = useState(null);
   const stats = computeStats(form);
   const topicOptions = TOPIC_SUGGESTIONS[form.subsection] || [];
+  const [definingIdx, setDefiningIdx] = useState(null);
+
+  async function handleAutoDefine(idx, word) {
+    if (!word) return;
+    const key = localStorage.getItem('gemini_api_key');
+    if (!key) {
+      alert('Please save a Gemini API key in the AI Log Zone first!');
+      return;
+    }
+    setDefiningIdx(idx);
+    try {
+      const meaning = await defineWordWithGemini(word, key);
+      const newVocab = [...(form.vocab.length ? form.vocab : [{ word: '', meaning: '' }])];
+      newVocab[idx] = { ...newVocab[idx], meaning };
+      setForm((f) => ({ ...f, vocab: newVocab }));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to fetch meaning. Please type it manually.');
+    } finally {
+      setDefiningIdx(null);
+    }
+  }
 
   function handleAutofill(parsed) {
     if (parsed.section && parsed.section !== sectionKey) {
@@ -150,6 +173,16 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
                     newVocab[idx] = { ...newVocab[idx], word: e.target.value };
                     setForm({ ...form, vocab: newVocab });
                   }} />
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm define-btn"
+                    style={{ padding: '4px 8px', minHeight: 'auto', alignSelf: 'center' }}
+                    disabled={definingIdx === idx || !v.word}
+                    onClick={() => handleAutoDefine(idx, v.word)}
+                    title="Define word with AI"
+                  >
+                    {definingIdx === idx ? '⏳' : '✨'}
+                  </button>
                   <input placeholder="meaning" value={v.meaning} onChange={(e) => {
                     const newVocab = [...(form.vocab.length ? form.vocab : [{ word: '', meaning: '' }])];
                     newVocab[idx] = { ...newVocab[idx], meaning: e.target.value };

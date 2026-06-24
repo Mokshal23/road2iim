@@ -85,3 +85,44 @@ export async function parseScreenshotWithGemini(base64Image, apiKey) {
     }
   }
 }
+
+async function callGeminiText(modelName, prompt, apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || `API call failed for ${modelName}`);
+  }
+
+  const result = await response.json();
+  return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+export async function defineWordWithGemini(word, apiKey) {
+  const prompt = `Define the word "${word}" in the context of CAT (Common Admission Test) vocabulary.
+Provide a concise definition and a key synonym in exactly one short line (e.g. "Meticulous: showing great attention to detail; precise (Syn: diligent)").
+Do not include markdown bold or block tags. Keep the definition under 14 words.`;
+
+  try {
+    const text = await callGeminiText('gemini-2.5-flash', prompt, apiKey);
+    return text.trim();
+  } catch (err2_5) {
+    console.warn('Gemini 2.5 Flash vocab definition failed, trying 1.5 Flash:', err2_5);
+    try {
+      const text = await callGeminiText('gemini-1.5-flash', prompt, apiKey);
+      return text.trim();
+    } catch (err1_5) {
+      console.error('Gemini 1.5 Flash vocab definition failed:', err1_5);
+      throw new Error(err2_5.message || 'Failed to fetch definition', { cause: err1_5 });
+    }
+  }
+}
+

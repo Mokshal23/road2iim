@@ -4,6 +4,7 @@ import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
 import TagPicker from './TagPicker';
+import { defineWordWithGemini } from '../utils/ai';
 import AIScreenshotLog from './AIScreenshotLog';
 
 function blankRow(section, defaults = {}) {
@@ -154,6 +155,28 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
   const stats = computeStats(row);
   const topicOptions = TOPIC_SUGGESTIONS[row.subsection] || [];
   const listId = `topics-${row.key}`;
+  const [definingIdx, setDefiningIdx] = useState(null);
+
+  async function handleAutoDefine(idx, word) {
+    if (!word) return;
+    const key = localStorage.getItem('gemini_api_key');
+    if (!key) {
+      alert('Please save a Gemini API key in the AI Log Zone first!');
+      return;
+    }
+    setDefiningIdx(idx);
+    try {
+      const meaning = await defineWordWithGemini(word, key);
+      const newVocab = [...(row.vocab || [{ word: '', meaning: '' }])];
+      newVocab[idx] = { ...newVocab[idx], meaning };
+      onChange({ vocab: newVocab });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to fetch meaning. Please type it manually.');
+    } finally {
+      setDefiningIdx(null);
+    }
+  }
 
   return (
     <div className="row-card" style={{ borderColor: cfg.color }}>
@@ -283,6 +306,16 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
                 newVocab[idx] = { ...newVocab[idx], word: e.target.value };
                 onChange({ vocab: newVocab });
               }} />
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm define-btn"
+                style={{ padding: '4px 8px', minHeight: 'auto', alignSelf: 'center' }}
+                disabled={definingIdx === idx || !v.word}
+                onClick={() => handleAutoDefine(idx, v.word)}
+                title="Define word with AI"
+              >
+                {definingIdx === idx ? '⏳' : '✨'}
+              </button>
               <input placeholder="meaning" value={v.meaning} onChange={(e) => {
                 const newVocab = [...(row.vocab || [{ word: '', meaning: '' }])];
                 newVocab[idx] = { ...newVocab[idx], meaning: e.target.value };
