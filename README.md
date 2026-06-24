@@ -120,6 +120,60 @@ cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
 
+## What's new in v3 — read the auth steps carefully
+
+**New features:**
+- **Days-to-CAT countdown** on the Today tab, with a 7-day pace check against
+  your QA+LRDI daily targets. Exam date is editable (defaults to the
+  expected-but-unconfirmed 29 Nov 2026).
+- **Edit, not just delete** — practice entries, Aeon articles, and mock
+  tests can now be edited in place via a small modal, not just deleted.
+- **Mistake trend over time** — toggle on Dashboard between "this week" and
+  an all-time weekly trend line for your top recurring mistake tags.
+- **What went well** — a parallel, optional tag picker next to mistake tags,
+  so a clean session shows up as a win, not a blank. Neither set of tags is
+  required anymore — log a perfect session with nothing ticked at all.
+- **Quick-log mode** on the Log tab — a stripped-down single-row form,
+  pre-filled from your last session in that section.
+- **CSV export** for entries, Aeon articles, and mock tests (Dashboard tab).
+- **Weekly digest** — auto-generated summary at the top of the Dashboard.
+- **Threaded replies** on mentor notes — either side can reply under a note.
+- **Mentor "flag for discussion"** — a star toggle on any entry or mock,
+  with a standing "flagged for discussion" list on the Dashboard.
+- **Install as an app** — your phone/browser should now offer "Add to Home
+  Screen" / "Install" for an app-like, full-screen experience.
+- **Light/dark toggle** — sun/moon icon in the header, remembers your choice
+  per device.
+- **Sign-in required** — see below, this is the big one.
+
+**Source list change**: "Aeon article" is gone from the Log tab's source
+dropdown (redundant with the dedicated Aeon tab) — replaced with iQuanta,
+Cracku, and IMS Portal. Old entries that already say "Aeon article" are
+completely untouched; editing one shows it as a clearly-marked legacy option
+so saving never silently changes it.
+
+### Sign-in — do these in order, or you'll lock yourself out
+
+The app now requires login so randoms with the URL can't read or write your
+data. This does **not** touch any existing document in Firestore — it only
+changes who can reach them. But the order you do this in matters:
+
+1. **Firebase Console → Authentication → Sign-in method → enable Email/Password.**
+2. **Authentication → Users → Add user** — twice. One email+password for you,
+   one for your mentor. Pick anything memorable; there's no verification flow.
+3. **Deploy this updated code** (push to GitHub as usual). It now shows a
+   login screen before anything else.
+4. **Only after step 3 succeeds**, update your Firestore rules with the new
+   `firestore.rules` in this project (Firebase Console → Firestore Database
+   → Rules → paste → Publish).
+
+If you do step 4 before steps 1-2, nobody — including you — can sign in
+yet, so the rules would block everyone. Doing it in the order above means
+there's no moment where you're locked out of your own data.
+
+Once both accounts exist, share the relevant email/password with your
+mentor for the `/mentor` URL, and use your own for the main app.
+
 ## Notes
 
 - All scoring assumes CAT's standard +3 / −1 marking; uncheck "Negative
