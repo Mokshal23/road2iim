@@ -49,6 +49,57 @@ export const TOPIC_SUGGESTIONS = {
   ],
 };
 
+export const CAT_SYLLABUS_WEIGHTAGE = {
+  VARC: {
+    // Reading Comprehension topics
+    'Economics': 'High',
+    'Business': 'High',
+    'Science & Tech': 'High',
+    'Philosophy': 'High',
+    'History': 'High',
+    'Sociology': 'High',
+    'Psychology': 'High',
+    'Literature & Arts': 'High',
+    'Politics': 'High',
+    'Environment': 'High',
+    // Verbal Ability topics
+    'Para jumbles': 'Medium',
+    'Para summary': 'Medium',
+    'Odd sentence out': 'Low',
+    'Sentence correction': 'Low',
+    'Critical reasoning': 'Medium',
+    'Vocabulary': 'Low',
+    'Para completion': 'Medium',
+  },
+  LRDI: {
+    // Logical Reasoning topics
+    'Arrangements': 'High',
+    'Puzzles': 'High',
+    'Blood relations': 'Low',
+    'Syllogisms': 'Low',
+    'Binary logic': 'Medium',
+    'Games & tournaments': 'High',
+    'Selections': 'Medium',
+    'Routes & networks': 'Medium',
+    // Data Interpretation topics
+    'Tables': 'Medium',
+    'Bar graphs': 'High',
+    'Line graphs': 'Medium',
+    'Pie charts': 'Low',
+    'Caselets': 'High',
+    'Mixed sets': 'High',
+  },
+  QA: {
+    'Arithmetic': 'High',
+    'Algebra': 'High',
+    'Geometry & Mensuration': 'High',
+    'Number Systems': 'Medium',
+    'Modern Math (P&C, Probability)': 'Medium',
+    'Logarithms & Functions': 'High',
+  },
+};
+
+
 export const MISTAKE_TAGS = [
   'Conceptual gap',
   'Calculation error',

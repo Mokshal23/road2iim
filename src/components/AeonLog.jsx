@@ -3,6 +3,7 @@ import { AEON_DIFFICULTY, TOPIC_SUGGESTIONS } from '../constants';
 import { addAeonArticle, deleteAeonArticle, updateAeonArticle } from '../hooks/useAeonArticles';
 import { formatPretty, todayStr } from '../utils/dates';
 import Modal from './Modal';
+import ReadingSpeedTrend from './ReadingSpeedTrend';
 
 function blankForm() {
   return {
@@ -27,6 +28,7 @@ export default function AeonLog({ articles, entries = [], readOnly = false }) {
       <div className="subtab-row">
         <button className={`subtab ${tab === 'log' ? 'subtab--active' : ''}`} onClick={() => setTab('log')}>Articles</button>
         <button className={`subtab ${tab === 'vocab' ? 'subtab--active' : ''}`} onClick={() => setTab('vocab')}>Vocab bank</button>
+        <button className={`subtab ${tab === 'analysis' ? 'subtab--active' : ''}`} onClick={() => setTab('analysis')}>Analysis</button>
       </div>
 
       {tab === 'log' ? (
@@ -34,8 +36,10 @@ export default function AeonLog({ articles, entries = [], readOnly = false }) {
           {!readOnly && <AeonForm />}
           <ArticleList articles={articles} readOnly={readOnly} onEdit={setEditing} />
         </>
-      ) : (
+      ) : tab === 'vocab' ? (
         <VocabBank articles={articles} entries={entries} />
+      ) : (
+        <AeonAnalysis articles={articles} />
       )}
 
       {editing && (
@@ -229,6 +233,87 @@ function VocabBank({ articles, entries = [] }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function AeonAnalysis({ articles }) {
+  const topicStats = useMemo(() => {
+    const map = {};
+    for (const a of articles) {
+      if (a.wordCount > 0 && a.timeTaken > 0) {
+        if (!map[a.topic]) map[a.topic] = [];
+        map[a.topic].push(a);
+      }
+    }
+    return Object.keys(map).map((topic) => {
+      const list = map[topic];
+      const count = list.length;
+      const totalTime = list.reduce((acc, a) => acc + (Number(a.timeTaken) || 0), 0);
+      const avgSpeed = Math.round(list.reduce((acc, a) => acc + (a.readingSpeed || 0), 0) / count);
+      return { topic, count, totalTime, avgSpeed };
+    }).sort((a, b) => b.avgSpeed - a.avgSpeed);
+  }, [articles]);
+
+  const speedDrilldown = useMemo(() => {
+    return articles
+      .filter((a) => a.wordCount > 0 && a.timeTaken > 0)
+      .sort((a, b) => b.readingSpeed - a.readingSpeed);
+  }, [articles]);
+
+  return (
+    <div className="dashboard">
+      <ReadingSpeedTrend articles={articles} />
+
+      <div className="card">
+        <h3>Reading speed by topic</h3>
+        {topicStats.length === 0 ? (
+          <p className="empty">No topic data available.</p>
+        ) : (
+          <table className="day-table">
+            <thead>
+              <tr><th>Topic</th><th>Avg WPM</th><th>Articles Read</th><th>Total Time</th></tr>
+            </thead>
+            <tbody>
+              {topicStats.map((s) => (
+                <tr key={s.topic}>
+                  <td style={{ fontWeight: 500 }}>{s.topic || 'General'}</td>
+                  <td>{s.avgSpeed} wpm</td>
+                  <td>{s.count}</td>
+                  <td>{Math.round(s.totalTime)} min</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="card" style={{ marginBottom: 64 }}>
+        <h3>Passage speed drilldown</h3>
+        {speedDrilldown.length === 0 ? (
+          <p className="empty">Log a few articles with reading time and word count.</p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="day-table">
+              <thead>
+                <tr><th>Date</th><th>Article Title</th><th>Topic</th><th>Time</th><th>Words</th><th>Speed</th></tr>
+              </thead>
+              <tbody>
+                {speedDrilldown.map((a) => (
+                  <tr key={a.id}>
+                    <td>{formatPretty(a.date)}</td>
+                    <td style={{ fontWeight: 500 }}>{a.title}</td>
+                    <td>{a.topic || '—'}</td>
+                    <td>{a.timeTaken} min</td>
+                    <td>{a.wordCount}</td>
+                    <td><span className="vocab-chip">{a.readingSpeed} wpm</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

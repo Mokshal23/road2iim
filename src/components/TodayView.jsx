@@ -23,17 +23,20 @@ export default function TodayView({
   const weekArticles = aeonArticles.filter((a) => a.date >= start && a.date <= end);
 
   return (
-    <div className="dashboard">
-      <ExamCountdown examDate={examDate} confirmed={examConfirmed} targets={targets} entries={entries} readOnly={readOnlyGoals} />
-      <DailyGoalMeter entries={entries} aeonArticles={aeonArticles} targets={targets} readOnly={readOnlyGoals} />
-      <SectionBalance entries={weekEntries} aeonArticles={weekArticles} />
-      <div className="dashboard__row">
+    <div className="today-grid">
+      <div className="today-grid__left">
+        <ExamCountdown examDate={examDate} confirmed={examConfirmed} targets={targets} entries={entries} readOnly={readOnlyGoals} />
+        <DailyGoalMeter entries={entries} aeonArticles={aeonArticles} targets={targets} readOnly={readOnlyGoals} />
+        <SectionBalance entries={weekEntries} aeonArticles={weekArticles} />
+        <StreakHeatmap activeDates={activeDates} />
+      </div>
+      <div className="today-grid__right">
         <PersonalTodos todos={todos} />
         <Reminders reminders={reminders} />
+        <TaskBoard tasks={tasks} canManage={false} />
       </div>
-      <TaskBoard tasks={tasks} canManage={false} />
-      <StreakHeatmap activeDates={activeDates} />
     </div>
   );
 }
+
 

@@ -10,6 +10,9 @@ import GoalsPanel from './GoalsPanel';
 import CommentsPanel from './CommentsPanel';
 import ExportData from './ExportData';
 import ReadingSpeedTrend from './ReadingSpeedTrend';
+import SyllabusTracker from './SyllabusTracker';
+import TopicMasteryQuadrants from './TopicMasteryQuadrants';
+import SlotFatigueTracker from './SlotFatigueTracker';
 import { SECTION_LIST } from '../constants';
 import { todayStr, weekRange } from '../utils/dates';
 
@@ -51,6 +54,12 @@ export default function Dashboard({
 
       <TopicBreakdown entries={weekEntries} sectionKey={sectionKey} />
 
+      <SyllabusTracker entries={sectionEntries} sectionKey={sectionKey} />
+
+      <TopicMasteryQuadrants entries={sectionEntries} sectionKey={sectionKey} />
+
+      <SlotFatigueTracker entries={entries} sectionKey={sectionKey} />
+
       {sectionKey === 'VARC' && <ReadingSpeedTrend articles={articles} />}
 
       <GoalsPanel goals={goals} entries={entries} readOnly={readOnly} sectionKey={sectionKey} />
@@ -61,3 +70,4 @@ export default function Dashboard({
     </div>
   );
 }
+

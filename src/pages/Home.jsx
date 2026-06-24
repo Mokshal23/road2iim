@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SectionTabs from '../components/SectionTabs';
 import EntryForm from '../components/EntryForm';
 import QuickLogForm from '../components/QuickLogForm';
@@ -16,9 +16,10 @@ import { useExamDate } from '../hooks/useExamDate';
 import { useAeonArticles } from '../hooks/useAeonArticles';
 import { useMockTests } from '../hooks/useMockTests';
 import { useTasks } from '../hooks/useTasks';
-import { useTodos } from '../hooks/useTodos';
+import { useTodos, addTodo } from '../hooks/useTodos';
 import { useReminders } from '../hooks/useReminders';
 import { firebaseConfigured } from '../firebase';
+import { todayStr, shiftWeek } from '../utils/dates';
 
 const TABS = [
   { key: 'today', label: 'Today' },
@@ -44,6 +45,40 @@ export default function Home() {
   const { tasks } = useTasks();
   const { todos } = useTodos();
   const { reminders } = useReminders();
+
+  useEffect(() => {
+    if (loading || entries.length === 0) return;
+
+    const today = todayStr();
+    const lastWeek = shiftWeek(today, -1);
+    const recentEntries = entries.filter((e) => e.date >= lastWeek && e.date <= today);
+
+    // Count mistake tags
+    const counts = {};
+    for (const e of recentEntries) {
+      for (const t of e.mistakeTags || []) {
+        counts[t] = (counts[t] || 0) + 1;
+      }
+    }
+
+    // Find top mistake
+    let topTag = null;
+    let maxCount = 0;
+    for (const tag of Object.keys(counts)) {
+      if (counts[tag] > maxCount) {
+        maxCount = counts[tag];
+        topTag = tag;
+      }
+    }
+
+    if (topTag && maxCount > 0) {
+      const planText = `[AI Plan] Practise drills to fix: ${topTag}`;
+      const alreadyExists = todos.some((t) => t.text === planText);
+      if (!alreadyExists) {
+        addTodo({ text: planText, dueDate: today });
+      }
+    }
+  }, [entries, todos, loading]);
 
   if (!firebaseConfigured) return <ConfigWarning />;
 
