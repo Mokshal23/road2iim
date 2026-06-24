@@ -119,6 +119,23 @@ npm install
 cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
+## What's new in v4 (AI-Enabled Upgrades)
+
+- **🧠 AI Coach & Executive Summary**: Get a personal 3-sentence performance coaching briefing at the top of the **Today** tab, compiled from your recent 7-day study time, mock test results, and mistake tag trends.
+- **📷 AI Scorecard Screenshot Logger**: Simply drag and drop or upload a screenshot of your practice scorecard (e.g. from IMS, iQuanta, Cracku). Gemini automatically parses and fills in attempts, corrects, time taken, source, and passage labels.
+- **✨ AI Vocabulary Auto-Definer**: Press the `✨` button next to any word input (detailed log, quick log, Aeon log, or edit modals) to automatically fetch a concise definition and synonym (max 14 words).
+- **🧠 AI Mistake Patterns Analyzer**: Located in the new `🧠 AI Insights` tab inside the **Mistake patterns** card, this reads your qualitative session notes and mistake tags to identify 2-3 recurring cognitive bottlenecks with strategic remedies.
+
+### 🔑 Setting up the AI features (for Newbies)
+
+The AI features use the **Google Gemini API**. To enable them:
+1. Go to [Google AI Studio](https://aistudio.google.com/) and create a free API Key.
+2. In the Road2IIM app, on the **Today** tab, locate the **AI Coach & Executive Summary** card.
+3. Paste your Gemini API key and click **Save Key**.
+4. The key is stored securely in your browser's local storage (`localStorage`). It runs entirely on the client side and is never sent to any external server other than Google's secure Gemini API.
+5. All AI features share this same key, so you only need to enter it once. If you ever need to remove it, simply click **Remove Key** at the bottom of the card.
+
+---
 
 ## What's new in v3 — read the auth steps carefully
 

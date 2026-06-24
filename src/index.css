@@ -36,6 +36,10 @@ body {
   color: var(--text);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+body:not([data-theme="light"]) {
+  background: radial-gradient(circle at 50% 0%, #161a24 0%, #0c0d11 100%) !important;
 }
 
 button, input, select { font-family: inherit; }
@@ -50,8 +54,13 @@ a { color: inherit; text-decoration: none; }
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: var(--bg);
+  background: rgba(15, 17, 21, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: 10;
+}
+body[data-theme="light"] .app-header {
+  background: rgba(247, 245, 241, 0.8) !important;
 }
 .app-header__title {
   font-family: var(--font-mono);
@@ -164,19 +173,21 @@ a { color: inherit; text-decoration: none; }
   padding: 18px 20px;
   margin-bottom: 16px;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
 }
 .card:hover {
-  border-color: rgba(91, 141, 239, 0.25);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  border-color: rgba(91, 141, 239, 0.22);
+  box-shadow: 0 12px 36px -8px rgba(91, 141, 239, 0.12), 0 8px 30px rgba(0, 0, 0, 0.35);
 }
 .ai-card {
-  background: linear-gradient(135deg, rgba(91, 141, 239, 0.05) 0%, rgba(23, 25, 31, 0.7) 100%) !important;
-  border: 1px solid rgba(91, 141, 239, 0.18) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+  background: linear-gradient(135deg, rgba(91, 141, 239, 0.04) 0%, rgba(23, 25, 31, 0.75) 100%) !important;
+  border: 1px solid rgba(91, 141, 239, 0.15) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
 }
 .ai-card:hover {
-  border-color: rgba(91, 141, 239, 0.35) !important;
+  border-color: rgba(91, 141, 239, 0.3) !important;
   transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(91, 141, 239, 0.08), 0 4px 24px rgba(0, 0, 0, 0.3) !important;
 }
 .card h3 { margin: 0 0 12px; font-size: 15px; letter-spacing: -0.01em; }
 .card h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: -0.01em; }
@@ -338,19 +349,23 @@ a { color: inherit; text-decoration: none; }
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn:hover {
   transform: translateY(-1px);
 }
 .btn:active {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
-.btn--primary { background: var(--amber); border-color: var(--amber); color: #15161a; }
+.btn--primary {
+  background: linear-gradient(135deg, var(--amber) 0%, #a3722a 100%);
+  border-color: var(--amber);
+  color: #15161a;
+}
 .btn--primary:hover {
-  background: #db9d44;
-  border-color: #db9d44;
-  box-shadow: 0 4px 12px rgba(196, 140, 59, 0.2);
+  background: linear-gradient(135deg, #e5a952 0%, #b27e33 100%);
+  border-color: #e5a952;
+  box-shadow: 0 4px 14px rgba(196, 140, 59, 0.25);
 }
 .btn--ghost { background: transparent; color: var(--text); }
 .btn--ghost:hover {
@@ -1061,6 +1076,40 @@ textarea {
   .quick-log__topic-row input, .quick-log__topic-row select {
     width: 100%;
   }
+}
+
+/* Premium global input focus transition & subtle shadows */
+input[type="text"],
+input[type="number"],
+input[type="url"],
+input[type="date"],
+input[type="password"],
+select,
+textarea {
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="url"]:focus,
+input[type="date"]:focus,
+input[type="password"]:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(91, 141, 239, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.12) !important;
+  background-color: rgba(31, 34, 42, 0.9) !important;
+}
+
+body[data-theme="light"] input[type="text"]:focus,
+body[data-theme="light"] input[type="number"]:focus,
+body[data-theme="light"] input[type="url"]:focus,
+body[data-theme="light"] input[type="date"]:focus,
+body[data-theme="light"] input[type="password"]:focus,
+body[data-theme="light"] select:focus,
+body[data-theme="light"] textarea:focus {
+  background-color: #ffffff !important;
 }
 
 
