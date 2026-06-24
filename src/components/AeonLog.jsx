@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { AEON_DIFFICULTY, TOPIC_SUGGESTIONS } from '../constants';
 import { addAeonArticle, deleteAeonArticle, updateAeonArticle } from '../hooks/useAeonArticles';
 import { formatPretty, todayStr } from '../utils/dates';
+import { defineWordWithGemini } from '../utils/ai';
 import Modal from './Modal';
 import ReadingSpeedTrend from './ReadingSpeedTrend';
 
@@ -66,6 +67,7 @@ function AeonForm({ editArticle = null, onDone = null }) {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
   const isEdit = Boolean(editArticle);
+  const [definingIdx, setDefiningIdx] = useState(null);
 
   function updateVocab(idx, patch) {
     setForm((f) => ({ ...f, vocab: f.vocab.map((v, i) => (i === idx ? { ...v, ...patch } : v)) }));
@@ -75,6 +77,24 @@ function AeonForm({ editArticle = null, onDone = null }) {
   }
   function removeVocabRow(idx) {
     setForm((f) => ({ ...f, vocab: f.vocab.length === 1 ? f.vocab : f.vocab.filter((_, i) => i !== idx) }));
+  }
+  async function handleAutoDefine(idx, word) {
+    if (!word) return;
+    const key = localStorage.getItem('gemini_api_key');
+    if (!key) {
+      alert('Please save a Gemini API key in the AI Log Zone first!');
+      return;
+    }
+    setDefiningIdx(idx);
+    try {
+      const meaning = await defineWordWithGemini(word, key);
+      updateVocab(idx, { meaning });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to fetch meaning. Please type it manually.');
+    } finally {
+      setDefiningIdx(null);
+    }
   }
 
   async function handleSubmit(e) {
@@ -143,6 +163,16 @@ function AeonForm({ editArticle = null, onDone = null }) {
         {form.vocab.map((v, idx) => (
           <div key={idx} className="vocab-editor__row">
             <input placeholder="word" value={v.word} onChange={(e) => updateVocab(idx, { word: e.target.value })} />
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm define-btn"
+              style={{ padding: '4px 8px', minHeight: 'auto', alignSelf: 'center' }}
+              disabled={definingIdx === idx || !v.word}
+              onClick={() => handleAutoDefine(idx, v.word)}
+              title="Define word with AI"
+            >
+              {definingIdx === idx ? '⏳' : '✨'}
+            </button>
             <input placeholder="meaning" value={v.meaning} onChange={(e) => updateVocab(idx, { meaning: e.target.value })} />
             {form.vocab.length > 1 && (
               <button type="button" className="icon-btn" onClick={() => removeVocabRow(idx)}>✕</button>
