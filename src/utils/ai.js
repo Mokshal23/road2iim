@@ -43,7 +43,7 @@ export function resizeAndCompressImage(file, maxWidth = 1000, quality = 0.8) {
   });
 }
 
-async function callGeminiModel(modelName, base64Image, apiKey, timeoutMs = 25000) {
+async function callGeminiModel(modelName, base64Image, apiKey, timeoutMs = 90000) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const prompt = `You are a data extraction assistant for CAT (Common Admission Test) prep.
@@ -165,13 +165,13 @@ Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON str
 export async function parseScreenshotWithGemini(base64Image, apiKey) {
   let rawParsed;
   try {
-    // Try Gemini 2.5 Flash first with a 25-second timeout
-    rawParsed = await callGeminiModel('gemini-2.5-flash', base64Image, apiKey, 25000);
+    // Try Gemini 2.5 Flash first with a generous 90-second timeout
+    rawParsed = await callGeminiModel('gemini-2.5-flash', base64Image, apiKey, 90000);
   } catch (err2_5) {
     console.warn('Gemini 2.5 Flash failed or timed out, trying fallback to Gemini 2.0 Flash:', err2_5);
     try {
       // Fallback to Gemini 2.0 Flash
-      rawParsed = await callGeminiModel('gemini-2.0-flash', base64Image, apiKey, 35000);
+      rawParsed = await callGeminiModel('gemini-2.0-flash', base64Image, apiKey, 90000);
     } catch (err2_0) {
       console.error('Gemini 2.0 Flash fallback failed:', err2_0);
       throw new Error(err2_5.message || 'Gemini API call failed', { cause: err2_0 });
