@@ -58,16 +58,32 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
     if (parsed.section && parsed.section !== sectionKey) {
       alert(`Note: The parsed screenshot is for ${parsed.section}, but you are logging under ${sectionKey}.`);
     }
+
+    let att = parsed.attempted;
+    let cor = parsed.correct;
+    let time = parsed.timeTaken;
+    let lbl = parsed.label;
+
+    if (parsed.sections && parsed.sections[sectionKey]) {
+      const secData = parsed.sections[sectionKey];
+      att = secData.attempted;
+      cor = secData.correct;
+      time = secData.timeTaken;
+      if (!lbl && parsed.label) {
+        lbl = `${parsed.label} (${sectionKey})`;
+      }
+    }
+
     setForm((f) => ({
       ...f,
-      timeTaken: parsed.timeTaken !== undefined && parsed.timeTaken !== null ? String(parsed.timeTaken) : f.timeTaken,
-      attempted: parsed.attempted !== undefined && parsed.attempted !== null ? String(parsed.attempted) : f.attempted,
-      correct: parsed.correct !== undefined && parsed.correct !== null ? String(parsed.correct) : f.correct,
+      timeTaken: time !== undefined && time !== null ? String(time) : f.timeTaken,
+      attempted: att !== undefined && att !== null ? String(att) : f.attempted,
+      correct: cor !== undefined && cor !== null ? String(cor) : f.correct,
       source: parsed.source || f.source,
       difficulty: parsed.difficulty || f.difficulty,
       topic: parsed.topic || f.topic,
       subsection: parsed.subsection || f.subsection,
-      label: parsed.label || f.label,
+      label: lbl || f.label,
     }));
     setStatus({ type: 'success', msg: 'Autofilled from screenshot! Please review details.' });
   }

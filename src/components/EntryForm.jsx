@@ -45,18 +45,34 @@ export default function EntryForm({ sectionKey, entries = [] }) {
     if (parsed.section && parsed.section !== sectionKey) {
       alert(`Note: The parsed screenshot is for ${parsed.section}, but you are logging under ${sectionKey}.`);
     }
+
+    let att = parsed.attempted;
+    let cor = parsed.correct;
+    let time = parsed.timeTaken;
+    let lbl = parsed.label;
+
+    if (parsed.sections && parsed.sections[sectionKey]) {
+      const secData = parsed.sections[sectionKey];
+      att = secData.attempted;
+      cor = secData.correct;
+      time = secData.timeTaken;
+      if (!lbl && parsed.label) {
+        lbl = `${parsed.label} (${sectionKey})`;
+      }
+    }
+
     const first = rows[0];
     const isFirstEmpty = first && !first.timeTaken && !first.attempted && !first.correct && !first.topic;
 
     const autofilled = {
-      timeTaken: parsed.timeTaken !== undefined && parsed.timeTaken !== null ? String(parsed.timeTaken) : '',
-      attempted: parsed.attempted !== undefined && parsed.attempted !== null ? String(parsed.attempted) : '',
-      correct: parsed.correct !== undefined && parsed.correct !== null ? String(parsed.correct) : '',
+      timeTaken: time !== undefined && time !== null ? String(time) : '',
+      attempted: att !== undefined && att !== null ? String(att) : '',
+      correct: cor !== undefined && cor !== null ? String(cor) : '',
       source: parsed.source || first?.source || SOURCES[0],
       difficulty: parsed.difficulty || 'Medium',
       topic: parsed.topic || '',
       subsection: parsed.subsection || first?.subsection || (SECTIONS[sectionKey].subsections[0]),
-      label: parsed.label || first?.label || '',
+      label: lbl || first?.label || '',
     };
 
     if (isFirstEmpty) {
