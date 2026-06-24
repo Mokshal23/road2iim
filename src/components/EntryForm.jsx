@@ -4,6 +4,7 @@ import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
 import TagPicker from './TagPicker';
+import AIScreenshotLog from './AIScreenshotLog';
 
 function blankRow(section, defaults = {}) {
   const cfg = SECTIONS[section];
@@ -38,6 +39,32 @@ export default function EntryForm({ sectionKey, entries = [] }) {
   const [rows, setRows] = useState([blankRow(sectionKey, defaults)]);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+
+  function handleAutofill(parsed) {
+    if (parsed.section && parsed.section !== sectionKey) {
+      alert(`Note: The parsed screenshot is for ${parsed.section}, but you are logging under ${sectionKey}.`);
+    }
+    const first = rows[0];
+    const isFirstEmpty = first && !first.timeTaken && !first.attempted && !first.correct && !first.topic;
+
+    const autofilled = {
+      timeTaken: parsed.timeTaken !== undefined && parsed.timeTaken !== null ? String(parsed.timeTaken) : '',
+      attempted: parsed.attempted !== undefined && parsed.attempted !== null ? String(parsed.attempted) : '',
+      correct: parsed.correct !== undefined && parsed.correct !== null ? String(parsed.correct) : '',
+      source: parsed.source || first?.source || SOURCES[0],
+      difficulty: parsed.difficulty || 'Medium',
+      topic: parsed.topic || '',
+      subsection: parsed.subsection || first?.subsection || (SECTIONS[sectionKey].subsections[0]),
+      label: parsed.label || first?.label || '',
+    };
+
+    if (isFirstEmpty) {
+      setRows([{ ...first, ...autofilled }]);
+    } else {
+      setRows((rs) => [...rs, { ...blankRow(sectionKey), ...autofilled }]);
+    }
+    setStatus({ type: 'success', msg: 'Autofilled from screenshot! Please review details.' });
+  }
 
   function updateRow(key, patch) {
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -82,40 +109,43 @@ export default function EntryForm({ sectionKey, entries = [] }) {
   }
 
   return (
-    <form className="entry-form" onSubmit={handleSubmit}>
-      <div className="entry-form__date">
-        <label>
-          Session date
-          <input type="date" value={date} max={todayStr()} onChange={(e) => setDate(e.target.value)} required />
-        </label>
-        <span className="hint">All rows below get logged under this date.</span>
-      </div>
+    <div className="entry-form-container">
+      <AIScreenshotLog onAutofill={handleAutofill} />
+      <form className="entry-form" onSubmit={handleSubmit}>
+        <div className="entry-form__date">
+          <label>
+            Session date
+            <input type="date" value={date} max={todayStr()} onChange={(e) => setDate(e.target.value)} required />
+          </label>
+          <span className="hint">All rows below get logged under this date.</span>
+        </div>
 
-      {rows.map((row, idx) => (
-        <RowCard
-          key={row.key}
-          row={row}
-          index={idx}
-          sectionKey={sectionKey}
-          onChange={(patch) => updateRow(row.key, patch)}
-          onRemove={() => removeRow(row.key)}
-          removable={rows.length > 1}
-        />
-      ))}
+        {rows.map((row, idx) => (
+          <RowCard
+            key={row.key}
+            row={row}
+            index={idx}
+            sectionKey={sectionKey}
+            onChange={(patch) => updateRow(row.key, patch)}
+            onRemove={() => removeRow(row.key)}
+            removable={rows.length > 1}
+          />
+        ))}
 
-      <div className="entry-form__actions">
-        <button type="button" className="btn btn--ghost" onClick={addRow}>
-          + Add another {cfg.subsections.length > 1 ? 'passage/set' : 'set'}
-        </button>
-        <button type="submit" className="btn btn--primary" disabled={saving}>
-          {saving ? 'Saving…' : `Save session (${rows.length})`}
-        </button>
-      </div>
+        <div className="entry-form__actions">
+          <button type="button" className="btn btn--ghost" onClick={addRow}>
+            + Add another {cfg.subsections.length > 1 ? 'passage/set' : 'set'}
+          </button>
+          <button type="submit" className="btn btn--primary" disabled={saving}>
+            {saving ? 'Saving…' : `Save session (${rows.length})`}
+          </button>
+        </div>
 
-      {status && (
-        <div className={`status status--${status.type}`}>{status.msg}</div>
-      )}
-    </form>
+        {status && (
+          <div className={`status status--${status.type}`}>{status.msg}</div>
+        )}
+      </form>
+    </div>
   );
 }
 

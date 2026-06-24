@@ -4,6 +4,7 @@ import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
 import TagPicker from './TagPicker';
+import AIScreenshotLog from './AIScreenshotLog';
 
 function defaultsFrom(entries, sectionKey) {
   const last = entries.find((e) => e.section === sectionKey);
@@ -20,6 +21,7 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
   const seed = defaultsFrom(entries, sectionKey);
   const [form, setForm] = useState({
     subsection: seed.subsection, topic: seed.topic, source: seed.source,
+    label: '',
     timeTaken: '', attempted: '', correct: '', negativeMarking: true, mistakeTags: [], goodTags: [],
     difficulty: 'Medium', vocab: [],
   });
@@ -29,6 +31,24 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
   const stats = computeStats(form);
   const topicOptions = TOPIC_SUGGESTIONS[form.subsection] || [];
 
+  function handleAutofill(parsed) {
+    if (parsed.section && parsed.section !== sectionKey) {
+      alert(`Note: The parsed screenshot is for ${parsed.section}, but you are logging under ${sectionKey}.`);
+    }
+    setForm((f) => ({
+      ...f,
+      timeTaken: parsed.timeTaken !== undefined && parsed.timeTaken !== null ? String(parsed.timeTaken) : f.timeTaken,
+      attempted: parsed.attempted !== undefined && parsed.attempted !== null ? String(parsed.attempted) : f.attempted,
+      correct: parsed.correct !== undefined && parsed.correct !== null ? String(parsed.correct) : f.correct,
+      source: parsed.source || f.source,
+      difficulty: parsed.difficulty || f.difficulty,
+      topic: parsed.topic || f.topic,
+      subsection: parsed.subsection || f.subsection,
+      label: parsed.label || f.label,
+    }));
+    setStatus({ type: 'success', msg: 'Autofilled from screenshot! Please review details.' });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.timeTaken || !form.attempted || form.correct === '') {
@@ -37,9 +57,9 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
     }
     setSaving(true);
     try {
-      await saveSessionRows([{ ...form, date: todayStr(), section: sectionKey, label: '', notes: '' }]);
+      await saveSessionRows([{ ...form, date: todayStr(), section: sectionKey, notes: '' }]);
       setStatus({ type: 'success', msg: 'Logged.' });
-      setForm((f) => ({ ...f, timeTaken: '', attempted: '', correct: '', mistakeTags: [], goodTags: [], vocab: [] }));
+      setForm((f) => ({ ...f, label: '', timeTaken: '', attempted: '', correct: '', mistakeTags: [], goodTags: [], vocab: [] }));
       setShowVocab(false);
     } catch (e2) {
       setStatus({ type: 'error', msg: e2.message });
@@ -49,7 +69,9 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
   }
 
   return (
-    <form className="quick-log" onSubmit={handleSubmit} style={{ borderColor: cfg.color }}>
+    <div className="quick-log-container">
+      <AIScreenshotLog onAutofill={handleAutofill} />
+      <form className="quick-log" onSubmit={handleSubmit} style={{ borderColor: cfg.color }}>
       {cfg.subsections.length > 1 && (
         <div className="seg">
           {cfg.subsections.map((s) => (
@@ -73,6 +95,11 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
           onChange={(e) => setForm({ ...form, topic: e.target.value })}
         />
         <datalist id="quick-topics">{topicOptions.map((t) => <option key={t} value={t} />)}</datalist>
+        <input
+          value={form.label}
+          placeholder="Heading (e.g. Passage 1)"
+          onChange={(e) => setForm({ ...form, label: e.target.value })}
+        />
         <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
           {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -149,5 +176,6 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
       </div>
       {status && <div className={`status status--${status.type}`}>{status.msg}</div>}
     </form>
+    </div>
   );
 }

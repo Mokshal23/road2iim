@@ -929,4 +929,94 @@ textarea {
   font-family: var(--font-mono);
 }
 
+/* AI Screenshot autofill pulsing state */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.pulse {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Mobile responsive and usability overrides */
+.topic-col, .syllabus-tracker__section, .day-table-wrap, .card {
+  max-width: 100%;
+}
+.day-table, .topic-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+@media (max-width: 768px) {
+  /* Prevent zoom on focus and make targets 48px min height */
+  input, select, textarea {
+    font-size: 16px !important;
+    padding: 12px 14px !important;
+    min-height: 48px;
+  }
+  .btn {
+    min-height: 48px;
+    padding: 12px 18px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tab-row {
+    bottom: 16px;
+    padding: 6px 8px;
+    width: 94%;
+    justify-content: space-around;
+  }
+  .tab {
+    font-size: 12px;
+    padding: 8px 14px;
+    flex: 1;
+    text-align: center;
+  }
+  .page {
+    padding-bottom: 96px;
+  }
+  .topic-col, .syllabus-tracker__section {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .day-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tagpicker {
+    gap: 8px;
+  }
+  .tag {
+    padding: 8px 14px;
+    font-size: 13px;
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 580px) {
+  .row-card__grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+  .row-card__grid label.checkbox {
+    grid-column: span 1 !important;
+  }
+  .quick-log__big-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+  .quick-log__topic-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .quick-log__topic-row input, .quick-log__topic-row select {
+    width: 100%;
+  }
+}
+
+
 
