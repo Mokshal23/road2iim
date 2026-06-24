@@ -25,7 +25,7 @@ ${JSON.stringify(activitySummary, null, 2)}
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
     try {
       const response = await fetch(url, {
         method: 'POST',

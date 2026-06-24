@@ -125,7 +125,7 @@ async function callGeminiText(modelName, prompt, apiKey) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
   try {
     const response = await fetch(url, {
