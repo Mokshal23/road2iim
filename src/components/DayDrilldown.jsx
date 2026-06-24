@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react';
 import { SECTIONS } from '../constants';
 import { formatPretty, todayStr, groupByDate } from '../utils/dates';
 import { aggregate } from '../utils/calc';
-import { deleteEntry } from '../hooks/useEntries';
+import { deleteEntry, toggleEntryFlag } from '../hooks/useEntries';
+import EditEntryModal from './EditEntryModal';
 
 export default function DayDrilldown({ entries, readOnly = false }) {
   const [selected, setSelected] = useState(null);
+  const [editing, setEditing] = useState(null);
   const grouped = useMemo(() => groupByDate(entries), [entries]);
   const recentDates = useMemo(() => Object.keys(grouped).sort((a, b) => b.localeCompare(a)).slice(0, 14), [grouped]);
 
@@ -48,14 +50,17 @@ export default function DayDrilldown({ entries, readOnly = false }) {
           <table className="day-table">
             <thead>
               <tr>
-                <th>Section</th><th>Subsection</th><th>Topic</th><th>Label</th>
-                <th>Time</th><th>Att.</th><th>Cor.</th><th>Acc.</th><th>Mpm</th><th>Tags</th><th>Source</th><th>Notes</th>
-                {!readOnly && <th></th>}
+                <th></th><th>Section</th><th>Subsection</th><th>Topic</th><th>Label</th>
+                <th>Time</th><th>Att.</th><th>Cor.</th><th>Acc.</th><th>Mpm</th><th>Good</th><th>Mistakes</th><th>Source</th><th>Notes</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {dayEntries.map((e) => (
-                <tr key={e.id}>
+                <tr key={e.id} className={e.flagged ? 'row--flagged' : ''}>
+                  <td>
+                    <button className={`star-btn ${e.flagged ? 'star-btn--active' : ''}`} onClick={() => toggleEntryFlag(e)} aria-label="Flag for discussion">★</button>
+                  </td>
                   <td><span className="dot" style={{ background: SECTIONS[e.section]?.color }} /> {SECTIONS[e.section]?.label}</td>
                   <td>{e.subsection}</td>
                   <td>{e.topic}</td>
@@ -65,20 +70,26 @@ export default function DayDrilldown({ entries, readOnly = false }) {
                   <td>{e.correct}</td>
                   <td>{e.accuracy}%</td>
                   <td>{e.marksPerMinute}</td>
-                  <td className="tags-cell">{(e.mistakeTags || []).join(', ')}</td>
+                  <td className="tags-cell tags-cell--good">{(e.goodTags || []).join(', ') || '—'}</td>
+                  <td className="tags-cell">{(e.mistakeTags || []).join(', ') || '—'}</td>
                   <td>{e.source}</td>
                   <td className="tags-cell">{e.notes || '—'}</td>
-                  {!readOnly && (
-                    <td>
-                      <button className="icon-btn" onClick={() => deleteEntry(e.id)} aria-label="Delete">🗑</button>
-                    </td>
-                  )}
+                  <td>
+                    {!readOnly && (
+                      <>
+                        <button className="icon-btn" onClick={() => setEditing(e)} aria-label="Edit">✎</button>
+                        <button className="icon-btn" onClick={() => deleteEntry(e.id)} aria-label="Delete">🗑</button>
+                      </>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </>
       )}
+
+      {editing && <EditEntryModal entry={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }

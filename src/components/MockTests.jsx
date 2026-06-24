@@ -3,8 +3,9 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
 import { MOCK_SOURCES, SECTIONS } from '../constants';
-import { addMockTest, deleteMockTest } from '../hooks/useMockTests';
+import { addMockTest, deleteMockTest, toggleMockFlag } from '../hooks/useMockTests';
 import { formatPretty, formatShort, todayStr } from '../utils/dates';
+import EditMockModal from './EditMockModal';
 
 const SECTION_KEYS = ['VARC', 'LRDI', 'QA'];
 
@@ -142,6 +143,7 @@ function MockForm() {
 }
 
 function MockTable({ mocks, readOnly }) {
+  const [editing, setEditing] = useState(null);
   return (
     <div className="card">
       <h3>All mocks</h3>
@@ -152,14 +154,17 @@ function MockTable({ mocks, readOnly }) {
           <table className="day-table">
             <thead>
               <tr>
-                <th>Date</th><th>Source</th><th>Label</th><th>Score</th><th>%ile</th>
+                <th></th><th>Date</th><th>Source</th><th>Label</th><th>Score</th><th>%ile</th>
                 <th>VARC acc</th><th>LRDI acc</th><th>QA acc</th>
-                {!readOnly && <th></th>}
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {mocks.map((m) => (
-                <tr key={m.id}>
+                <tr key={m.id} className={m.flagged ? 'row--flagged' : ''}>
+                  <td>
+                    <button className={`star-btn ${m.flagged ? 'star-btn--active' : ''}`} onClick={() => toggleMockFlag(m)} aria-label="Flag for discussion">★</button>
+                  </td>
                   <td>{formatPretty(m.date)}</td>
                   <td>{m.source}</td>
                   <td>{m.label || '—'}</td>
@@ -168,15 +173,21 @@ function MockTable({ mocks, readOnly }) {
                   <td>{m.sections?.VARC?.accuracy ?? '—'}%</td>
                   <td>{m.sections?.LRDI?.accuracy ?? '—'}%</td>
                   <td>{m.sections?.QA?.accuracy ?? '—'}%</td>
-                  {!readOnly && (
-                    <td><button className="icon-btn" onClick={() => deleteMockTest(m.id)} aria-label="Delete">🗑</button></td>
-                  )}
+                  <td>
+                    {!readOnly && (
+                      <>
+                        <button className="icon-btn" onClick={() => setEditing(m)} aria-label="Edit">✎</button>
+                        <button className="icon-btn" onClick={() => deleteMockTest(m.id)} aria-label="Delete">🗑</button>
+                      </>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      {editing && <EditMockModal mock={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }

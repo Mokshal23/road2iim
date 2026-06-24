@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 // All values come from environment variables — see .env.example.
 // In Vercel, set these under Project Settings → Environment Variables.
@@ -21,3 +22,4 @@ const app = firebaseConfigured
   : null;
 
 export const db = firebaseConfigured ? getFirestore(app) : null;
+export const auth = firebaseConfigured ? getAuth(app) : null;

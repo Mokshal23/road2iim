@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp,
+  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
 } from 'firebase/firestore';
 import { db, firebaseConfigured } from '../firebase';
 import { computeStats } from '../utils/calc';
@@ -55,4 +55,26 @@ export async function addMockTest({ date, source, label, overallScore, overallPe
 
 export async function deleteMockTest(id) {
   await deleteDoc(doc(db, COLLECTION, id));
+}
+
+// Edits a mock in place, recomputing sectional stats from the edited inputs.
+export async function updateMockTest(id, { date, source, label, overallScore, overallPercentile, notes, sections }) {
+  const computedSections = {};
+  for (const key of SECTION_KEYS) {
+    const s = sections[key] || { attempted: 0, correct: 0, timeTaken: 0 };
+    computedSections[key] = computeStats({ ...s, negativeMarking: true });
+  }
+  await updateDoc(doc(db, COLLECTION, id), {
+    date, source, label: label || '',
+    overallScore: Number(overallScore) || 0,
+    overallPercentile: Number(overallPercentile) || 0,
+    notes: notes || '',
+    sections: computedSections,
+  });
+}
+
+// Mentor-side "flag for discussion" toggle. Older mocks without the field
+// are treated as not flagged until toggled for the first time.
+export async function toggleMockFlag(mock) {
+  await updateDoc(doc(db, COLLECTION, mock.id), { flagged: !mock.flagged });
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp,
+  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
 } from 'firebase/firestore';
 import { db, firebaseConfigured } from '../firebase';
 
@@ -46,4 +46,16 @@ export async function addAeonArticle(article) {
 
 export async function deleteAeonArticle(id) {
   await deleteDoc(doc(db, COLLECTION, id));
+}
+
+// Edits an article in place. Only the fields passed are changed.
+export async function updateAeonArticle(id, article) {
+  await updateDoc(doc(db, COLLECTION, id), {
+    date: article.date,
+    title: article.title,
+    topic: article.topic || 'General',
+    summary: article.summary || '',
+    difficulty: article.difficulty,
+    vocab: (article.vocab || []).filter((v) => v.word.trim()),
+  });
 }

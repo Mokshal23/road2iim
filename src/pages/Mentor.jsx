@@ -9,6 +9,7 @@ import { useEntries } from '../hooks/useEntries';
 import { useGoals } from '../hooks/useGoals';
 import { useComments } from '../hooks/useComments';
 import { useDailyTargets } from '../hooks/useDailyTargets';
+import { useExamDate } from '../hooks/useExamDate';
 import { useAeonArticles } from '../hooks/useAeonArticles';
 import { useMockTests } from '../hooks/useMockTests';
 import { useTasks } from '../hooks/useTasks';
@@ -29,6 +30,7 @@ export default function Mentor() {
   const { goals } = useGoals();
   const { comments } = useComments();
   const { targets } = useDailyTargets();
+  const { examDate, confirmed } = useExamDate();
   const { articles } = useAeonArticles();
   const { mocks } = useMockTests();
   const { tasks } = useTasks();
@@ -37,7 +39,7 @@ export default function Mentor() {
 
   return (
     <div className="page">
-      <div className="mentor-banner">Mentor view — read-only, except notes and tasks below.</div>
+      <div className="mentor-banner">Mentor view — read-only, except notes, tasks, and flags below.</div>
 
       <div className="tab-row">
         {TABS.map((t) => (
@@ -51,9 +53,15 @@ export default function Mentor() {
       {loading ? (
         <p className="empty">Loading…</p>
       ) : tab === 'today' ? (
-        <TodayView entries={entries} aeonArticles={articles} mocks={mocks} targets={targets} tasks={tasks} readOnlyGoals={true} />
+        <TodayView
+          entries={entries} aeonArticles={articles} mocks={mocks} targets={targets}
+          tasks={tasks} examDate={examDate} examConfirmed={confirmed} readOnlyGoals={true}
+        />
       ) : tab === 'dashboard' ? (
-        <Dashboard entries={entries} goals={goals} comments={comments} readOnly={true} canWriteComments={true} />
+        <Dashboard
+          entries={entries} mocks={mocks} tasks={tasks} articles={articles}
+          goals={goals} comments={comments} readOnly={true} canWriteComments={true} viewerRole="mentor"
+        />
       ) : tab === 'aeon' ? (
         <AeonLog articles={articles} readOnly={true} />
       ) : tab === 'mocks' ? (

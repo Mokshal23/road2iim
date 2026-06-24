@@ -62,8 +62,22 @@ export const MISTAKE_TAGS = [
   'Other',
 ];
 
+export const POSITIVE_TAGS = [
+  'Strong concept clarity',
+  'Good time management',
+  'Accurate calculation',
+  'Smart elimination',
+  'Read carefully',
+  'Right approach first try',
+  'Stayed calm under pressure',
+  'Effective skip/triage call',
+  'Other',
+];
+
 export const SOURCES = [
-  'Aeon article',
+  'iQuanta',
+  'Cracku',
+  'IMS Portal',
   'IMS mock',
   'New test series',
   'Self practice',
@@ -71,6 +85,7 @@ export const SOURCES = [
 ];
 
 export const MAX_MISTAKE_TAGS = 3;
+export const MAX_POSITIVE_TAGS = 3;
 
 export const MOCK_SOURCES = ['SimCAT', 'Cracku', 'IMS Mock', 'Other'];
 

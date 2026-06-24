@@ -1,31 +1,39 @@
 import { useState } from 'react';
-import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES } from '../constants';
+import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS } from '../constants';
 import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
-import MistakeTagPicker from './MistakeTagPicker';
+import TagPicker from './TagPicker';
 
-function blankRow(section) {
+function blankRow(section, defaults = {}) {
   const cfg = SECTIONS[section];
   return {
     key: crypto.randomUUID(),
-    subsection: cfg.subsections[0],
-    topic: '',
+    subsection: defaults.subsection || cfg.subsections[0],
+    topic: defaults.topic || '',
     label: '',
     timeTaken: '',
     attempted: '',
     correct: '',
     negativeMarking: true,
-    source: SOURCES[0],
+    source: defaults.source || SOURCES[0],
     mistakeTags: [],
+    goodTags: [],
     notes: '',
   };
 }
 
-export default function EntryForm({ sectionKey }) {
+function lastDefaultsFor(entries, sectionKey) {
+  const last = entries.find((e) => e.section === sectionKey);
+  if (!last) return {};
+  return { subsection: last.subsection, topic: last.topic, source: last.source };
+}
+
+export default function EntryForm({ sectionKey, entries = [] }) {
   const cfg = SECTIONS[sectionKey];
+  const defaults = lastDefaultsFor(entries, sectionKey);
   const [date, setDate] = useState(todayStr());
-  const [rows, setRows] = useState([blankRow(sectionKey)]);
+  const [rows, setRows] = useState([blankRow(sectionKey, defaults)]);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
 
@@ -47,7 +55,6 @@ export default function EntryForm({ sectionKey }) {
     for (const r of rows) {
       if (!r.timeTaken || !r.attempted || r.correct === '') return 'Fill in time, attempted and correct for every row.';
       if (Number(r.correct) > Number(r.attempted)) return 'Correct cannot exceed attempted.';
-      if (r.mistakeTags.length === 0) return 'Pick at least one mistake/result tag per row (even "Other" is fine).';
     }
     return null;
   }
@@ -64,7 +71,7 @@ export default function EntryForm({ sectionKey }) {
     try {
       await saveSessionRows(rows.map((r) => ({ ...r, date, section: sectionKey })));
       setStatus({ type: 'success', msg: `Saved ${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} for ${date}.` });
-      setRows([blankRow(sectionKey)]);
+      setRows([blankRow(sectionKey, defaults)]);
     } catch (e2) {
       setStatus({ type: 'error', msg: e2.message });
     } finally {
@@ -220,8 +227,13 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
       </label>
 
       <div className="row-card__tags">
-        <span className="row-card__tags-label">What went right/wrong (max 3):</span>
-        <MistakeTagPicker value={row.mistakeTags} onChange={(tags) => onChange({ mistakeTags: tags })} />
+        <span className="row-card__tags-label">What went well <span className="optional">(optional, max 3)</span>:</span>
+        <TagPicker value={row.goodTags} onChange={(tags) => onChange({ goodTags: tags })} options={POSITIVE_TAGS} good />
+      </div>
+
+      <div className="row-card__tags">
+        <span className="row-card__tags-label">What went wrong <span className="optional">(optional, max 3)</span>:</span>
+        <TagPicker value={row.mistakeTags} onChange={(tags) => onChange({ mistakeTags: tags })} options={MISTAKE_TAGS} />
       </div>
 
       <div className="row-card__stats">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp,
+  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
 } from 'firebase/firestore';
 import { db, firebaseConfigured } from '../firebase';
 import { computeStats } from '../utils/calc';
@@ -47,6 +47,7 @@ export async function saveSessionRows(rows) {
       label: row.label || '',
       source: row.source,
       mistakeTags: row.mistakeTags || [],
+      goodTags: row.goodTags || [],
       notes: row.notes || '',
       negativeMarking: Boolean(row.negativeMarking),
       ...stats,
@@ -58,4 +59,21 @@ export async function saveSessionRows(rows) {
 
 export async function deleteEntry(id) {
   await deleteDoc(doc(db, COLLECTION, id));
+}
+
+// Edits an existing entry in place — recomputes derived stats from the
+// edited fields, but only touches the fields passed in. Existing entries
+// you don't edit are never modified.
+export async function updateEntry(id, patch) {
+  const stats = computeStats({
+    attempted: patch.attempted, correct: patch.correct,
+    timeTaken: patch.timeTaken, negativeMarking: patch.negativeMarking,
+  });
+  await updateDoc(doc(db, COLLECTION, id), { ...patch, ...stats });
+}
+
+// Mentor-side "flag for discussion" toggle. Older entries simply don't have
+// this field yet (treated as false) until the first time someone toggles it.
+export async function toggleEntryFlag(entry) {
+  await updateDoc(doc(db, COLLECTION, entry.id), { flagged: !entry.flagged });
 }

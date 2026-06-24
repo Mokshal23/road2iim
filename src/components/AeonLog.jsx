@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { AEON_DIFFICULTY, TOPIC_SUGGESTIONS } from '../constants';
-import { addAeonArticle, deleteAeonArticle } from '../hooks/useAeonArticles';
+import { addAeonArticle, deleteAeonArticle, updateAeonArticle } from '../hooks/useAeonArticles';
 import { formatPretty, todayStr } from '../utils/dates';
+import Modal from './Modal';
 
 function blankForm() {
   return {
@@ -16,6 +17,7 @@ function blankForm() {
 
 export default function AeonLog({ articles, readOnly = false }) {
   const [tab, setTab] = useState('log');
+  const [editing, setEditing] = useState(null);
 
   return (
     <div>
@@ -27,19 +29,33 @@ export default function AeonLog({ articles, readOnly = false }) {
       {tab === 'log' ? (
         <>
           {!readOnly && <AeonForm />}
-          <ArticleList articles={articles} readOnly={readOnly} />
+          <ArticleList articles={articles} readOnly={readOnly} onEdit={setEditing} />
         </>
       ) : (
         <VocabBank articles={articles} />
+      )}
+
+      {editing && (
+        <Modal title="Edit article" onClose={() => setEditing(null)}>
+          <AeonForm editArticle={editing} onDone={() => setEditing(null)} />
+        </Modal>
       )}
     </div>
   );
 }
 
-function AeonForm() {
-  const [form, setForm] = useState(blankForm());
+function AeonForm({ editArticle = null, onDone = null }) {
+  const [form, setForm] = useState(editArticle ? {
+    date: editArticle.date,
+    title: editArticle.title,
+    topic: editArticle.topic,
+    difficulty: editArticle.difficulty,
+    summary: editArticle.summary || '',
+    vocab: editArticle.vocab?.length ? editArticle.vocab : [{ word: '', meaning: '' }],
+  } : blankForm());
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+  const isEdit = Boolean(editArticle);
 
   function updateVocab(idx, patch) {
     setForm((f) => ({ ...f, vocab: f.vocab.map((v, i) => (i === idx ? { ...v, ...patch } : v)) }));
@@ -59,9 +75,14 @@ function AeonForm() {
     }
     setSaving(true);
     try {
-      await addAeonArticle(form);
-      setStatus({ type: 'success', msg: 'Article logged.' });
-      setForm(blankForm());
+      if (isEdit) {
+        await updateAeonArticle(editArticle.id, form);
+        onDone?.();
+      } else {
+        await addAeonArticle(form);
+        setStatus({ type: 'success', msg: 'Article logged.' });
+        setForm(blankForm());
+      }
     } catch (e2) {
       setStatus({ type: 'error', msg: e2.message });
     } finally {
@@ -70,8 +91,8 @@ function AeonForm() {
   }
 
   return (
-    <form className="card aeon-form" onSubmit={handleSubmit}>
-      <h3>Log an article</h3>
+    <form className={isEdit ? '' : 'card aeon-form'} onSubmit={handleSubmit}>
+      {!isEdit && <h3>Log an article</h3>}
       <div className="row-card__grid">
         <label>Date<input type="date" max={todayStr()} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></label>
         <label className="aeon-title">Title<input value={form.title} placeholder="Article title" onChange={(e) => setForm({ ...form, title: e.target.value })} required /></label>
@@ -114,13 +135,18 @@ function AeonForm() {
         <button type="button" className="btn btn--ghost btn--sm" onClick={addVocabRow}>+ Add word</button>
       </div>
 
-      <button type="submit" className="btn btn--primary" disabled={saving}>{saving ? 'Saving…' : 'Save article'}</button>
+      <div className="entry-form__actions">
+        {isEdit && <button type="button" className="btn btn--ghost" onClick={onDone}>Cancel</button>}
+        <button type="submit" className="btn btn--primary" disabled={saving}>
+          {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save article'}
+        </button>
+      </div>
       {status && <div className={`status status--${status.type}`}>{status.msg}</div>}
     </form>
   );
 }
 
-function ArticleList({ articles, readOnly }) {
+function ArticleList({ articles, readOnly, onEdit }) {
   if (articles.length === 0) return <p className="empty">No articles logged yet.</p>;
   return (
     <div className="aeon-list">
@@ -129,7 +155,12 @@ function ArticleList({ articles, readOnly }) {
           <div className="aeon-card__head">
             <strong>{a.title}</strong>
             <span className="aeon-card__meta">{a.topic} · {a.difficulty} · {formatPretty(a.date)}</span>
-            {!readOnly && <button className="icon-btn" onClick={() => deleteAeonArticle(a.id)} aria-label="Delete">🗑</button>}
+            {!readOnly && (
+              <>
+                <button className="icon-btn" onClick={() => onEdit(a)} aria-label="Edit">✎</button>
+                <button className="icon-btn" onClick={() => deleteAeonArticle(a.id)} aria-label="Delete">🗑</button>
+              </>
+            )}
           </div>
           {a.summary && <p className="aeon-card__summary">{a.summary}</p>}
           {a.vocab?.length > 0 && (

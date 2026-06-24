@@ -23,12 +23,27 @@ export function useComments() {
   return { comments, loading };
 }
 
-export async function addComment({ date, text, linkedEntryLabel }) {
+// Top-level note. parentId is explicitly null so old documents (which
+// never had this field) and new ones are treated identically downstream.
+export async function addComment({ date, text, linkedEntryLabel, author = 'mentor' }) {
   await addDoc(collection(db, COLLECTION), {
     date: date || null,
     text,
     linkedEntryLabel: linkedEntryLabel || '',
-    author: 'mentor',
+    author,
+    parentId: null,
+    createdAt: serverTimestamp(),
+  });
+}
+
+// A reply nested under an existing top-level note. Either side can reply.
+export async function addReply({ parentId, text, author }) {
+  await addDoc(collection(db, COLLECTION), {
+    date: null,
+    text,
+    linkedEntryLabel: '',
+    author,
+    parentId,
     createdAt: serverTimestamp(),
   });
 }
