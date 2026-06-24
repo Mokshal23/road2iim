@@ -95,41 +95,60 @@ function MockForm() {
     if (parsed.type === 'mock') {
       if (parsed.source) {
         const match = MOCK_SOURCES.find((s) => s.toLowerCase() === parsed.source.toLowerCase());
-        setSource(match || parsed.source);
+        const resolvedSource = match || parsed.source;
+        if (source === MOCK_SOURCES[0]) {
+          setSource(resolvedSource);
+        }
       }
-      if (parsed.label) setLabel(parsed.label);
-      if (parsed.overallScore !== undefined && parsed.overallScore !== null) setOverallScore(String(parsed.overallScore));
-      if (parsed.overallPercentile !== undefined && parsed.overallPercentile !== null) setOverallPercentile(String(parsed.overallPercentile));
+      if (parsed.label && !label) setLabel(parsed.label);
+      if (parsed.overallScore !== undefined && parsed.overallScore !== null) {
+        setOverallScore((prev) => prev ? prev : String(parsed.overallScore));
+      }
+      if (parsed.overallPercentile !== undefined && parsed.overallPercentile !== null) {
+        setOverallPercentile((prev) => prev ? prev : String(parsed.overallPercentile));
+      }
 
       const newSections = { ...sections };
       if (parsed.sections) {
         SECTION_KEYS.forEach((key) => {
           if (parsed.sections[key]) {
             newSections[key] = {
-              attempted: parsed.sections[key].attempted !== undefined && parsed.sections[key].attempted !== null ? String(parsed.sections[key].attempted) : newSections[key].attempted,
-              correct: parsed.sections[key].correct !== undefined && parsed.sections[key].correct !== null ? String(parsed.sections[key].correct) : newSections[key].correct,
-              timeTaken: parsed.sections[key].timeTaken !== undefined && parsed.sections[key].timeTaken !== null ? String(parsed.sections[key].timeTaken) : newSections[key].timeTaken,
+              attempted: parsed.sections[key].attempted !== undefined && parsed.sections[key].attempted !== null
+                ? (newSections[key].attempted ? newSections[key].attempted : String(parsed.sections[key].attempted))
+                : newSections[key].attempted,
+              correct: parsed.sections[key].correct !== undefined && parsed.sections[key].correct !== null
+                ? (newSections[key].correct ? newSections[key].correct : String(parsed.sections[key].correct))
+                : newSections[key].correct,
+              timeTaken: parsed.sections[key].timeTaken !== undefined && parsed.sections[key].timeTaken !== null
+                ? (newSections[key].timeTaken ? newSections[key].timeTaken : String(parsed.sections[key].timeTaken))
+                : newSections[key].timeTaken,
             };
           }
         });
       }
       setSections(newSections);
-      setStatus({ type: 'success', msg: 'Autofilled mock test details! Please review.' });
+      setStatus({ type: 'success', msg: 'Autofilled mock test details into active form! Please review.' });
     } else if (parsed.type === 'sectional') {
       const key = parsed.section;
       if (key && SECTION_KEYS.includes(key)) {
         const newSections = { ...sections };
         newSections[key] = {
-          attempted: parsed.attempted !== undefined && parsed.attempted !== null ? String(parsed.attempted) : newSections[key].attempted,
-          correct: parsed.correct !== undefined && parsed.correct !== null ? String(parsed.correct) : newSections[key].correct,
-          timeTaken: parsed.timeTaken !== undefined && parsed.timeTaken !== null ? String(parsed.timeTaken) : newSections[key].timeTaken,
+          attempted: parsed.attempted !== undefined && parsed.attempted !== null
+            ? (newSections[key].attempted ? newSections[key].attempted : String(parsed.attempted))
+            : newSections[key].attempted,
+          correct: parsed.correct !== undefined && parsed.correct !== null
+            ? (newSections[key].correct ? newSections[key].correct : String(parsed.correct))
+            : newSections[key].correct,
+          timeTaken: parsed.timeTaken !== undefined && parsed.timeTaken !== null
+            ? (newSections[key].timeTaken ? newSections[key].timeTaken : String(parsed.timeTaken))
+            : newSections[key].timeTaken,
         };
         setSections(newSections);
-        if (parsed.source) {
+        if (parsed.source && source === MOCK_SOURCES[0]) {
           const match = MOCK_SOURCES.find((s) => s.toLowerCase() === parsed.source.toLowerCase());
           setSource(match || parsed.source);
         }
-        setStatus({ type: 'success', msg: `Autofilled ${key} sectional details! Please review.` });
+        setStatus({ type: 'success', msg: `Autofilled ${key} sectional details into active form! Please review.` });
       }
     }
   }

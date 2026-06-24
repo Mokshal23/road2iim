@@ -10,6 +10,39 @@ export function fileToBase64(file) {
   });
 }
 
+export function resizeAndCompressImage(file, maxWidth = 1000, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        const base64 = dataUrl.split(',')[1];
+        resolve(base64);
+      };
+      img.onerror = (err) => reject(new Error('Failed to load image for resizing', { cause: err }));
+    };
+    reader.onerror = (err) => reject(new Error('Failed to read file', { cause: err }));
+  });
+}
+
 async function callGeminiModel(modelName, base64Image, apiKey) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
@@ -76,62 +109,72 @@ Assume a default high accuracy (100% or close) as a baseline:
 
 Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON string.`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: 'image/png', // Gemini handles png/jpeg automatically
-                data: base64Image,
-              },
-            },
-          ],
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || `Gemini API request failed for ${modelName}`);
-  }
-
-  const result = await response.json();
-  const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
   try {
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start === -1 || end === -1 || end < start) {
-      throw new Error('No valid JSON structure found in Gemini response');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: 'image/jpeg',
+                  data: base64Image,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `Gemini API request failed for ${modelName}`);
     }
-    const jsonStr = text.substring(start, end + 1);
-    return JSON.parse(jsonStr);
+
+    const result = await response.json();
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    try {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start === -1 || end === -1 || end < start) {
+        throw new Error('No valid JSON structure found in Gemini response');
+      }
+      const jsonStr = text.substring(start, end + 1);
+      return JSON.parse(jsonStr);
+    } catch (err) {
+      console.warn('Raw text parsing failed:', text);
+      throw new Error('Failed to parse response JSON from Gemini', { cause: err });
+    }
   } catch (err) {
-    console.warn('Raw text parsing failed:', text);
-    throw new Error('Failed to parse response JSON from Gemini', { cause: err });
+    clearTimeout(timeoutId);
+    throw err;
   }
 }
 
 export async function parseScreenshotWithGemini(base64Image, apiKey) {
   let rawParsed;
   try {
-    // Try Gemini 2.5 Flash first
-    rawParsed = await callGeminiModel('gemini-2.5-flash', base64Image, apiKey);
-  } catch (err2_5) {
-    console.warn('Gemini 2.5 Flash failed, trying fallback to Gemini 1.5 Flash:', err2_5);
+    // Try Gemini 1.5 Flash first (stable and fast multimodal model)
+    rawParsed = await callGeminiModel('gemini-1.5-flash', base64Image, apiKey);
+  } catch (err1_5) {
+    console.warn('Gemini 1.5 Flash failed, trying fallback to Gemini 2.0 Flash:', err1_5);
     try {
-      // Fallback to Gemini 1.5 Flash (highly stable, higher free limits)
-      rawParsed = await callGeminiModel('gemini-1.5-flash', base64Image, apiKey);
-    } catch (err1_5) {
-      console.error('Gemini 1.5 Flash fallback failed:', err1_5);
-      // Throw the primary error to show to the user, or explain both failed
-      throw new Error(err2_5.message || 'Gemini API call failed', { cause: err1_5 });
+      // Fallback to Gemini 2.0 Flash
+      rawParsed = await callGeminiModel('gemini-2.0-flash', base64Image, apiKey);
+    } catch (err2_0) {
+      console.error('Gemini 2.0 Flash fallback failed:', err2_0);
+      throw new Error(err1_5.message || 'Gemini API call failed', { cause: err2_0 });
     }
   }
 
@@ -164,16 +207,16 @@ Provide a concise definition and a key synonym in exactly one short line (e.g. "
 Do not include markdown bold or block tags. Keep the definition under 14 words.`;
 
   try {
-    const text = await callGeminiText('gemini-2.5-flash', prompt, apiKey);
+    const text = await callGeminiText('gemini-1.5-flash', prompt, apiKey);
     return text.trim();
-  } catch (err2_5) {
-    console.warn('Gemini 2.5 Flash vocab definition failed, trying 1.5 Flash:', err2_5);
+  } catch (err1_5) {
+    console.warn('Gemini 1.5 Flash vocab definition failed, trying 2.0 Flash:', err1_5);
     try {
-      const text = await callGeminiText('gemini-1.5-flash', prompt, apiKey);
+      const text = await callGeminiText('gemini-2.0-flash', prompt, apiKey);
       return text.trim();
-    } catch (err1_5) {
-      console.error('Gemini 1.5 Flash vocab definition failed:', err1_5);
-      throw new Error(err2_5.message || 'Failed to fetch definition', { cause: err1_5 });
+    } catch (err2_0) {
+      console.error('Gemini 2.0 Flash vocab definition failed:', err2_0);
+      throw new Error(err1_5.message || 'Failed to fetch definition', { cause: err2_0 });
     }
   }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fileToBase64, parseScreenshotWithGemini } from '../utils/ai';
+import { resizeAndCompressImage, parseScreenshotWithGemini } from '../utils/ai';
 
 export default function AIScreenshotLog({ onAutofill }) {
   const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
@@ -10,7 +10,7 @@ export default function AIScreenshotLog({ onAutofill }) {
     setLoading(true);
     setError(null);
     try {
-      const base64 = await fileToBase64(file);
+      const base64 = await resizeAndCompressImage(file);
       const parsed = await parseScreenshotWithGemini(base64, apiKey);
       onAutofill(parsed);
     } catch (err) {

@@ -61,26 +61,37 @@ export default function EntryForm({ sectionKey, entries = [] }) {
       }
     }
 
-    const first = rows[0];
-    const isFirstEmpty = first && !first.timeTaken && !first.attempted && !first.correct && !first.topic;
+    setRows((rs) => {
+      const nextRows = [...rs];
+      if (nextRows.length === 0) {
+        nextRows.push(blankRow(sectionKey));
+      }
+      const targetIdx = nextRows.length - 1;
+      const target = nextRows[targetIdx];
 
-    const autofilled = {
-      timeTaken: time !== undefined && time !== null ? String(time) : '',
-      attempted: att !== undefined && att !== null ? String(att) : '',
-      correct: cor !== undefined && cor !== null ? String(cor) : '',
-      source: parsed.source || first?.source || SOURCES[0],
-      difficulty: parsed.difficulty || 'Medium',
-      topic: parsed.topic || '',
-      subsection: parsed.subsection || first?.subsection || (SECTIONS[sectionKey].subsections[0]),
-      label: lbl || first?.label || '',
-    };
+      const merged = {
+        ...target,
+        timeTaken: time !== undefined && time !== null ? String(time) : target.timeTaken,
+        attempted: att !== undefined && att !== null ? String(att) : target.attempted,
+        correct: cor !== undefined && cor !== null ? String(cor) : target.correct,
+        topic: target.topic ? target.topic : (parsed.topic || ''),
+        subsection: target.subsection && target.subsection !== cfg.subsections[0]
+          ? target.subsection
+          : (parsed.subsection || target.subsection || cfg.subsections[0]),
+        label: target.label ? target.label : (lbl || ''),
+        source: target.source && target.source !== SOURCES[0]
+          ? target.source
+          : (parsed.source || target.source || SOURCES[0]),
+        difficulty: target.difficulty && target.difficulty !== 'Medium'
+          ? target.difficulty
+          : (parsed.difficulty || target.difficulty || 'Medium'),
+      };
 
-    if (isFirstEmpty) {
-      setRows([{ ...first, ...autofilled }]);
-    } else {
-      setRows((rs) => [...rs, { ...blankRow(sectionKey), ...autofilled }]);
-    }
-    setStatus({ type: 'success', msg: 'Autofilled from screenshot! Please review details.' });
+      nextRows[targetIdx] = merged;
+      return nextRows;
+    });
+
+    setStatus({ type: 'success', msg: 'Autofilled details from screenshot into active entry! Please review.' });
   }
 
   function updateRow(key, patch) {
