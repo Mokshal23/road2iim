@@ -43,9 +43,205 @@ export function resizeAndCompressImage(file, maxWidth = 1000, quality = 0.8) {
   });
 }
 
-async function callGeminiModel(modelName, base64Image, apiKey, timeoutMs = 60000) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+export const FALLBACK_MODELS_TEXT = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-pro-exp-02-05',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-pro',
+  'groq/llama-3.3-70b-versatile',
+  'deepseek/deepseek-chat',
+  'zai/glm-4-flash'
+];
 
+export const FALLBACK_MODELS_VISION = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-pro-exp-02-05',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-pro',
+  'groq/llama-3.2-11b-vision-preview',
+  'zai/glm-4v-flash'
+];
+
+async function executeAICall({ model, prompt, base64Image, useSearch = false, timeoutMs = 60000 }) {
+  // 1. Determine provider
+  let provider = 'gemini';
+  let modelName = model;
+  if (model.startsWith('groq/')) {
+    provider = 'groq';
+    modelName = model.replace('groq/', '');
+  } else if (model.startsWith('deepseek/')) {
+    provider = 'deepseek';
+    modelName = model.replace('deepseek/', '');
+  } else if (model.startsWith('zai/')) {
+    provider = 'zai';
+    modelName = model.replace('zai/', '');
+  }
+
+  // 2. Get API key from localStorage
+  let apiKey = '';
+  if (provider === 'gemini') {
+    apiKey = localStorage.getItem('gemini_api_key') || '';
+  } else if (provider === 'groq') {
+    apiKey = localStorage.getItem('groq_api_key') || '';
+  } else if (provider === 'deepseek') {
+    apiKey = localStorage.getItem('deepseek_api_key') || '';
+  } else if (provider === 'zai') {
+    apiKey = localStorage.getItem('zai_api_key') || '';
+  }
+
+  if (!apiKey) {
+    throw new Error(`API key for ${provider} is not configured.`);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    let response;
+    if (provider === 'gemini') {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const body = {
+        contents: [
+          {
+            parts: [
+              { text: prompt }
+            ]
+          }
+        ]
+      };
+      if (base64Image) {
+        body.contents[0].parts.push({
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: base64Image
+          }
+        });
+      }
+      if (useSearch) {
+        body.tools = [{ googleSearch: {} }];
+      }
+
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `Gemini API call failed for ${modelName}`);
+      }
+
+      const result = await response.json();
+      return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    } else {
+      // OpenAI compatible endpoints (Groq, DeepSeek, Z.ai/Zhipu)
+      let url = '';
+      if (provider === 'groq') {
+        url = 'https://api.groq.com/openai/v1/chat/completions';
+      } else if (provider === 'deepseek') {
+        url = 'https://api.deepseek.com/chat/completions';
+      } else if (provider === 'zai') {
+        url = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
+
+      let messages = [];
+      if (base64Image) {
+        messages = [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ];
+      } else {
+        messages = [
+          { role: 'user', content: prompt }
+        ];
+      }
+
+      const body = {
+        model: modelName,
+        messages,
+        temperature: 0.1
+      };
+
+      response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `API call failed for ${modelName}`);
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || '';
+    }
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
+
+export async function callWithFallbackText(prompt, useSearch = false, timeoutMs = 60000) {
+  let lastError = null;
+  for (const model of FALLBACK_MODELS_TEXT) {
+    try {
+      console.log(`Attempting AI call using model: ${model}`);
+      const text = await executeAICall({ model, prompt, useSearch, timeoutMs });
+      if (text) return text;
+    } catch (err) {
+      console.warn(`Model ${model} failed:`, err.message || err);
+      lastError = err;
+    }
+  }
+  throw new Error(`All fallback models failed. Last error: ${lastError?.message || lastError}`);
+}
+
+export async function callWithFallbackVision(prompt, base64Image, timeoutMs = 60000) {
+  let lastError = null;
+  for (const model of FALLBACK_MODELS_VISION) {
+    try {
+      console.log(`Attempting Vision AI call using model: ${model}`);
+      const text = await executeAICall({ model, prompt, base64Image, timeoutMs });
+      if (text) return text;
+    } catch (err) {
+      console.warn(`Vision model ${model} failed:`, err.message || err);
+      lastError = err;
+    }
+  }
+  throw new Error(`All fallback vision models failed. Last error: ${lastError?.message || lastError}`);
+}
+
+export async function parseScreenshotWithGemini(base64Image, apiKey) {
   const prompt = `You are a data extraction assistant for CAT (Common Admission Test) prep.
 Analyze this screenshot. It will be either:
 (A) A practice session, set, or drill report (single topic/section).
@@ -109,106 +305,20 @@ Assume a default high accuracy (100% or close) as a baseline:
 
 Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON string.`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs); // dynamic timeout
-
+  const text = await callWithFallbackVision(prompt, base64Image, 60000);
+  
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: base64Image,
-                },
-              },
-            ],
-          },
-        ],
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || `Gemini API request failed for ${modelName}`);
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error('No valid JSON structure found in fallback response');
     }
-
-    const result = await response.json();
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    try {
-      const start = text.indexOf('{');
-      const end = text.lastIndexOf('}');
-      if (start === -1 || end === -1 || end < start) {
-        throw new Error('No valid JSON structure found in Gemini response');
-      }
-      const jsonStr = text.substring(start, end + 1);
-      return JSON.parse(jsonStr);
-    } catch (err) {
-      console.warn('Raw text parsing failed:', text);
-      throw new Error('Failed to parse response JSON from Gemini', { cause: err });
-    }
+    const jsonStr = text.substring(start, end + 1);
+    const rawParsed = JSON.parse(jsonStr);
+    return sanitizeParsedDetails(rawParsed);
   } catch (err) {
-    clearTimeout(timeoutId);
-    throw err;
-  }
-}
-
-export async function parseScreenshotWithGemini(base64Image, apiKey) {
-  let rawParsed;
-  try {
-    // Try Gemini 2.5 Flash first with a 60-second timeout
-    rawParsed = await callGeminiModel('gemini-2.5-flash', base64Image, apiKey, 60000);
-  } catch (err2_5) {
-    console.warn('Gemini 2.5 Flash failed or timed out, trying fallback to Gemini 2.0 Flash:', err2_5);
-    try {
-      // Fallback to Gemini 2.0 Flash
-      rawParsed = await callGeminiModel('gemini-2.0-flash', base64Image, apiKey, 60000);
-    } catch (err2_0) {
-      console.error('Gemini 2.0 Flash fallback failed:', err2_0);
-      throw new Error(err2_5.message || 'Gemini API call failed', { cause: err2_0 });
-    }
-  }
-
-  return sanitizeParsedDetails(rawParsed);
-}
-
-async function callGeminiText(modelName, prompt, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || `API call failed for ${modelName}`);
-    }
-
-    const result = await response.json();
-    return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  } catch (err) {
-    clearTimeout(timeoutId);
-    throw err;
+    console.warn('Raw text parsing failed:', text);
+    throw new Error('Failed to parse response JSON from AI models', { cause: err });
   }
 }
 
@@ -217,19 +327,8 @@ export async function defineWordWithGemini(word, apiKey) {
 Provide a concise definition and a key synonym in exactly one short line (e.g. "Meticulous: showing great attention to detail; precise (Syn: diligent)").
 Do not include markdown bold or block tags. Keep the definition under 14 words.`;
 
-  try {
-    const text = await callGeminiText('gemini-2.5-flash', prompt, apiKey);
-    return text.trim();
-  } catch (err2_5) {
-    console.warn('Gemini 2.5 Flash vocab definition failed, trying 2.0 Flash:', err2_5);
-    try {
-      const text = await callGeminiText('gemini-2.0-flash', prompt, apiKey);
-      return text.trim();
-    } catch (err2_0) {
-      console.error('Gemini 2.0 Flash vocab definition failed:', err2_0);
-      throw new Error(err2_5.message || 'Failed to fetch definition', { cause: err2_0 });
-    }
-  }
+  const text = await callWithFallbackText(prompt, false, 30000);
+  return text.trim();
 }
 
 export function sanitizeParsedDetails(parsed) {
@@ -303,38 +402,6 @@ export function sanitizeParsedDetails(parsed) {
   return result;
 }
 
-async function callGeminiTextWithSearch(modelName, prompt, apiKey, timeoutMs = 60000) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        tools: [{ googleSearch: {} }]
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || `API call failed for ${modelName}`);
-    }
-
-    const result = await response.json();
-    return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  } catch (err) {
-    clearTimeout(timeoutId);
-    throw err;
-  }
-}
-
 export async function gradeAeonSummaryWithGemini(articleTitle, articleLink, userSummary, apiKey) {
   const prompt = `You are a verbal ability expert grading a student's summary of this article.
 Article Title: "${articleTitle}"
@@ -362,27 +429,13 @@ Return ONLY a raw JSON object matching this schema. No markdown block tags (like
   "advice": "string"
 }`;
 
-  const callModel = async (model) => {
-    const text = await callGeminiTextWithSearch(model, prompt, apiKey, 60000);
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start === -1 || end === -1 || end < start) {
-      throw new Error('No valid JSON found in Gemini grading response');
-    }
-    return JSON.parse(text.substring(start, end + 1));
-  };
-
-  try {
-    return await callModel('gemini-2.5-flash');
-  } catch (err2_5) {
-    console.warn('Gemini 2.5 Flash summary grading failed, trying fallback to 2.0 Flash:', err2_5);
-    try {
-      return await callModel('gemini-2.0-flash');
-    } catch (err2_0) {
-      console.error('Gemini fallback summary grading failed:', err2_0);
-      throw new Error(err2_5.message || 'Summary grading failed', { cause: err2_0 });
-    }
+  const text = await callWithFallbackText(prompt, true, 60000);
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error('No valid JSON found in AI grading response');
   }
+  return JSON.parse(text.substring(start, end + 1));
 }
 
 export async function generateAeonQuizWithGemini(articleTitle, articleLink, apiKey) {
@@ -429,27 +482,13 @@ Return ONLY a raw JSON array matching this schema. No markdown block tags (like 
   }
 ]`;
 
-  const callModel = async (model) => {
-    const text = await callGeminiTextWithSearch(model, prompt, apiKey, 60000);
-    const start = text.indexOf('[');
-    const end = text.lastIndexOf(']');
-    if (start === -1 || end === -1 || end < start) {
-      throw new Error('No valid JSON array found in Gemini quiz response');
-    }
-    return JSON.parse(text.substring(start, end + 1));
-  };
-
-  try {
-    return await callModel('gemini-2.5-flash');
-  } catch (err2_5) {
-    console.warn('Gemini 2.5 Flash quiz generation failed, trying fallback to 2.0: ', err2_5);
-    try {
-      return await callModel('gemini-2.0-flash');
-    } catch (err2_0) {
-      console.error('Gemini fallback quiz generation failed:', err2_0);
-      throw new Error(err2_5.message || 'Quiz generation failed', { cause: err2_0 });
-    }
+  const text = await callWithFallbackText(prompt, true, 60000);
+  const start = text.indexOf('[');
+  const end = text.lastIndexOf(']');
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error('No valid JSON array found in AI quiz response');
   }
+  return JSON.parse(text.substring(start, end + 1));
 }
 
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { todayStr, shiftWeek } from '../utils/dates';
+import { callWithFallbackText } from '../utils/ai';
 
 // Standard fetch to Gemini API for text generation (with 2.5 -> 1.5 fallback)
 async function generateCoachBriefing(apiKey, activitySummary) {
@@ -17,43 +18,7 @@ Student's 7-Day Performance Data:
 ${JSON.stringify(activitySummary, null, 2)}
 `;
 
-  // We can reuse our parseScreenshotWithGemini fallback utility or call fetch directly.
-  // Let's call the model API directly for a text prompt.
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-  let lastError = null;
-
-  for (const model of models) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errJson = await response.json();
-        throw new Error(errJson.error?.message || `API error for ${model}`);
-      }
-
-      const result = await response.json();
-      const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      return text.trim();
-    } catch (err) {
-      clearTimeout(timeoutId);
-      console.warn(`AI Coach generation failed with ${model}:`, err);
-      lastError = err;
-    }
-  }
-
-  throw new Error(lastError?.message || 'Failed to generate AI Coach insights');
+  return await callWithFallbackText(prompt);
 }
 
 export default function AICoachSummary({ entries = [], mocks = [], articles = [] }) {

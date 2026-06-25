@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { MISTAKE_TAGS, SECTIONS } from '../constants';
 import { weekRange, formatShort } from '../utils/dates';
+import { callWithFallbackText } from '../utils/ai';
 
 const TREND_COLORS = ['#E0566B', '#E8A33D', '#5B8DEF', '#2BB3A3'];
 
@@ -121,37 +122,6 @@ function buildWeeklyTrend(entries) {
   return { data, topTags };
 }
 
-async function callGeminiText(modelName, prompt, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || `API call failed for ${modelName}`);
-    }
-
-    const result = await response.json();
-    return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  } catch (err) {
-    clearTimeout(timeoutId);
-    throw err;
-  }
-}
-
 async function fetchMistakeInsightsFromAI(apiKey, sectionKey, dataSummary) {
   const prompt = `You are an expert CAT (Common Admission Test) preparation mentor and cognitive performance analyst.
 Analyze the following practice session logs for the "${sectionKey}" section.
@@ -183,21 +153,14 @@ Return ONLY a raw JSON object matching the structure below. Do not wrap it in ma
   ]
 }`;
 
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-  let lastError = null;
-
-  for (const model of models) {
-    try {
-      const text = await callGeminiText(model, prompt, apiKey);
-      const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(cleaned);
-    } catch (err) {
-      console.warn(`Gemini mistake patterns analysis failed with ${model}:`, err);
-      lastError = err;
-    }
+  const text = await callWithFallbackText(prompt);
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error('No valid JSON found in AI mistake insights response');
   }
-
-  throw new Error(lastError?.message || 'Failed to analyze mistake patterns.');
+  const jsonStr = text.substring(start, end + 1);
+  return JSON.parse(jsonStr);
 }
 
 function AIMistakeInsights({ entries, sectionKey }) {
