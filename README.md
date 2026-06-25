@@ -125,6 +125,7 @@ npm run dev
 - **🎓 Test-Format CAT RC Quizzes**: Switched the quiz generation module to use an authentic test format. Answers, correct options, and explanations are hidden during testing, and the overall score is only calculated and revealed after submitting the entire test.
 - **📝 Persisted Review & Reflection Logging**: Added a detailed review panel to inspect correct options, understand traps (labeled as OOS, TBI, Extreme, Broad/Narrow, distortion), and save a custom **Self-Identified Error Analysis** directly to Firestore.
 - **⚙️ Fallback Keys Panel**: Expand the new fallback settings pane in the **AI Log Zone** to configure your Groq, DeepSeek, and Z.ai API keys.
+- **🔧 To-Dos & Reminders Fixes**: Resolved critical loading race conditions and date-shifting string validation bugs. Implemented a `localStorage` lock to ensure the AI Coach's plan todo is generated exactly once per day and doesn't get instantly recreated when deleted by the user.
 
 ## What's new in v4 (AI-Enabled Upgrades)
 
