@@ -58,7 +58,7 @@ export default function Dashboard({
 
       <TopicMasteryQuadrants entries={sectionEntries} sectionKey={sectionKey} />
 
-      <SlotFatigueTracker entries={entries} sectionKey={sectionKey} />
+      <SlotFatigueTracker entries={entries} sectionKey={sectionKey} selectedDate={anchorDate} />
 
       {sectionKey === 'VARC' && <ReadingSpeedTrend articles={articles} />}
 
