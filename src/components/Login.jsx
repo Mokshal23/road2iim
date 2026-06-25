@@ -47,54 +47,104 @@ export default function Login() {
 
   return (
     <div className="login-screen">
-      <form className="login-card" onSubmit={handleSubmit}>
-        <h1 className="login-card__title">Road2IIM</h1>
-        <p className="login-card__sub">{isSignUp ? 'Create a new account.' : 'Sign in to continue.'}</p>
-        <label style={{ display: 'block', marginBottom: '14px' }}>
-          Email
-          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
-        </label>
-        <label style={{ display: 'block', marginBottom: '14px', position: 'relative' }}>
-          Password
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              autoComplete={isSignUp ? 'new-password' : 'current-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{ width: '100%', paddingRight: '40px' }}
-            />
+      {/* Dynamic ambient background orbs */}
+      <div className="auth-orb auth-orb--1"></div>
+      <div className="auth-orb auth-orb--2"></div>
+
+      <div className="login-container">
+        <form className="login-card" onSubmit={handleSubmit}>
+          {/* Stylized geometric logo representing upward growth */}
+          <div className="login-logo">
+            <svg width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="22" stroke="url(#logo-grad)" strokeWidth="3" fill="rgba(31, 133, 119, 0.05)"/>
+              <path d="M14 34L22 26L28 32L36 18" stroke="url(#logo-grad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M30 18H36V24" stroke="url(#logo-grad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              <defs>
+                <linearGradient id="logo-grad" x1="14" y1="34" x2="36" y2="18" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="var(--teal)" />
+                  <stop offset="100%" stopColor="var(--blue)" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+
+          <h1 className="login-card__title">Road2IIM</h1>
+          <p className="login-card__sub">
+            {isSignUp ? 'Create your personal account to get started.' : 'Sign in to access your CAT prep control room.'}
+          </p>
+
+          {/* Sliding authentication mode tab toggle */}
+          <div className="auth-toggle-tabs">
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '15px',
-                padding: '4px',
-                color: 'var(--text-secondary)',
-                lineHeight: 1
-              }}
+              className={`auth-toggle-tab ${!isSignUp ? 'auth-toggle-tab--active' : ''}`}
+              onClick={() => { setIsSignUp(false); setError(null); }}
             >
-              {showPassword ? '👁️' : '🙈'}
+              Sign In
+            </button>
+            <button
+              type="button"
+              className={`auth-toggle-tab ${isSignUp ? 'auth-toggle-tab--active' : ''}`}
+              onClick={() => { setIsSignUp(true); setError(null); }}
+            >
+              Register
             </button>
           </div>
-        </label>
-        {error && <div className="status status--error">{error}</div>}
-        <button type="submit" className="btn btn--primary" style={{ width: '100%', display: 'block', padding: '12px' }} disabled={submitting}>
-          {submitting ? (isSignUp ? 'Signing up…' : 'Signing in…') : (isSignUp ? 'Sign Up' : 'Sign In')}
-        </button>
-        <div style={{ marginTop: '16px', fontSize: '12.5px', textAlign: 'center' }}>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setIsSignUp(!isSignUp); setError(null); }} style={{ textDecoration: 'underline', color: 'var(--blue)' }}>
-            {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+
+          <div className="form-group">
+            <span className="form-label">Email Address</span>
+            <div className="input-wrapper">
+              <span className="input-icon">✉️</span>
+              <input
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <span className="form-label">Password</span>
+            <div className="input-wrapper">
+              <span className="input-icon">🔒</span>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={isSignUp ? "Minimum 6 characters" : "••••••••"}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? '👁️' : '🙈'}
+              </button>
+            </div>
+          </div>
+
+          {error && <div className="status status--error auth-error-status">{error}</div>}
+
+          <button
+            type="submit"
+            className="btn btn--primary auth-submit-btn"
+            disabled={submitting}
+          >
+            {submitting ? (isSignUp ? 'Creating Account…' : 'Verifying Credentials…') : (isSignUp ? 'Create Free Account' : 'Sign In')}
           </button>
-        </div>
-      </form>
+
+          <div className="auth-footer-note">
+            Secure client-side end-to-end sync via Firestore.
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
