@@ -504,4 +504,47 @@ Return ONLY a raw JSON array matching the schema. No markdown block tags (like \
   return safeParseQuizJSON(text);
 }
 
+export async function generateDailyVocabSuggestions(existingWordsList = []) {
+  const existingWordsStr = existingWordsList.join(', ');
+  const prompt = `You are a vocabulary coaching assistant for CAT (Common Admission Test) aspirants.
+Generate exactly 3 sophisticated, high-value vocabulary words frequently tested in the CAT exam (like 'ephemeral', 'anachronism', 'capricious', etc.).
+
+Avoid recommending any of these words which the user already has in their vocabulary bank: [${existingWordsStr}].
+
+Return ONLY a raw JSON array matching this structure, with no markdown fences (like \`\`\`json):
+[
+  {
+    "word": "...",
+    "meaning": "A brief, clear definition (max 12 words)",
+    "example": "A high-quality sentence illustrating usage in a formal context"
+  },
+  ...
+]`;
+
+  const text = await callWithFallbackText(prompt, false, 30000);
+  try {
+    let cleanText = text.trim();
+    if (cleanText.startsWith('```')) {
+      const lines = cleanText.split('\n');
+      if (lines[0].startsWith('```')) lines.shift();
+      if (lines[lines.length - 1] === '```') lines.pop();
+      cleanText = lines.join('\n').trim();
+    }
+    const parsed = JSON.parse(cleanText);
+    if (!Array.isArray(parsed)) throw new Error('Expected JSON array');
+    return parsed.slice(0, 3).map(w => ({
+      word: String(w.word || '').trim(),
+      meaning: String(w.meaning || '').trim(),
+      example: String(w.example || '').trim(),
+    }));
+  } catch (err) {
+    console.error('Failed to parse daily vocab recommendations:', err, text);
+    return [
+      { word: 'Anachronism', meaning: 'Something belonging to a period other than that in which it exists', example: 'The dial telephone is an anachronism in today’s smartphone-dominated era.' },
+      { word: 'Capricious', meaning: 'Given to sudden and unaccountable changes of mood or behavior', example: 'The stock market can be capricious, shifting direction on a single rumor.' },
+      { word: 'Ephemeral', meaning: 'Lasting for a very short time', example: 'The ephemeral beauty of cherry blossoms draws millions of tourists each spring.' },
+    ];
+  }
+}
+
 

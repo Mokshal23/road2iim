@@ -4,6 +4,7 @@ import TodayView from '../components/TodayView';
 import TaskBoard from '../components/TaskBoard';
 import AeonLog from '../components/AeonLog';
 import MockTests from '../components/MockTests';
+import VocabBankSection from '../components/VocabBankSection';
 import ConfigWarning from '../components/ConfigWarning';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { useEntries } from '../hooks/useEntries';
@@ -16,22 +17,15 @@ import { useMockTests } from '../hooks/useMockTests';
 import { useTasks } from '../hooks/useTasks';
 import { useTodos } from '../hooks/useTodos';
 import { useReminders } from '../hooks/useReminders';
+import { useVocab } from '../hooks/useVocab';
 import { useMentorship } from '../hooks/useMentorship';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
 import { firebaseConfigured } from '../firebase';
 import { runMigration } from '../utils/migration';
 
-const TABS = [
-  { key: 'today', label: 'Today' },
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'aeon', label: 'Aeon log' },
-  { key: 'mocks', label: 'Mock tests' },
-  { key: 'tasks', label: 'Tasks' },
-];
-
 export default function Mentor() {
-  const [tab, setTab] = useState('today');
+  const activeTab = useAppStore((state) => state.activeTab);
   const [dashboardSection, setDashboardSection] = useState('VARC');
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -77,6 +71,7 @@ export default function Mentor() {
   const { tasks } = useTasks(studentId);
   const { todos } = useTodos(studentId);
   const { reminders } = useReminders(studentId);
+  const { vocabList } = useVocab(studentId);
 
   if (!firebaseConfigured) return <ConfigWarning />;
 
@@ -126,16 +121,6 @@ export default function Mentor() {
         </div>
       </div>
 
-      {students.length > 0 && (
-        <div className="tab-row">
-          {TABS.map((t) => (
-            <button key={t.key} className={`tab ${tab === t.key ? 'tab--active' : ''}`} onClick={() => setTab(t.key)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {!hasStudent ? (
         <div className="card" style={{ maxWidth: '500px', margin: '40px auto', padding: '30px', textAlign: 'center', border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 10px 0' }}>No active student linked</h3>
@@ -147,25 +132,27 @@ export default function Mentor() {
           </button>
         </div>
       ) : loading ? (
-        <SkeletonLoader type={tab === 'today' ? 'today' : 'card'} />
-      ) : tab === 'today' ? (
+        <SkeletonLoader type={activeTab === 'today' ? 'today' : 'card'} />
+      ) : activeTab === 'today' ? (
         <TodayView
           entries={entries} aeonArticles={articles} mocks={mocks} targets={targets}
           tasks={tasks} examDate={examDate} examConfirmed={confirmed} readOnlyGoals={true}
           todos={todos} reminders={reminders}
         />
-      ) : tab === 'dashboard' ? (
+      ) : activeTab === 'dashboard' ? (
         <Dashboard
           entries={entries} mocks={mocks} tasks={tasks} articles={articles}
           goals={goals} comments={comments} readOnly={true} canWriteComments={true} viewerRole="mentor"
           sectionKey={dashboardSection} onSectionChange={setDashboardSection}
         />
-      ) : tab === 'aeon' ? (
+      ) : activeTab === 'aeon' ? (
         <AeonLog articles={articles} readOnly={true} entries={entries} />
-      ) : tab === 'mocks' ? (
+      ) : activeTab === 'mocks' ? (
         <MockTests mocks={mocks} readOnly={true} />
-      ) : (
+      ) : activeTab === 'tasks' ? (
         <TaskBoard tasks={tasks} canManage={true} />
+      ) : (
+        <VocabBankSection articles={articles} entries={entries} vocabList={vocabList} studentId={studentId} readOnly={true} />
       )}
 
       {showLinkModal && (

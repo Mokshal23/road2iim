@@ -7,6 +7,7 @@ export const useAppStore = create((set, get) => {
 
   return {
     studentId: null,
+    activeTab: 'today',
     entries: [],
     todos: [],
     reminders: [],
@@ -15,6 +16,7 @@ export const useAppStore = create((set, get) => {
     tasks: [],
     goals: [],
     comments: [],
+    vocab: [],
     dailyTargets: null,
     examDate: null,
     examConfirmed: false,
@@ -27,6 +29,8 @@ export const useAppStore = create((set, get) => {
       }, 3500);
     },
 
+    setActiveTab: (activeTab) => set({ activeTab }),
+
     loading: {
       entries: false,
       todos: false,
@@ -36,6 +40,7 @@ export const useAppStore = create((set, get) => {
       tasks: false,
       goals: false,
       comments: false,
+      vocab: false,
       dailyTargets: false,
       examDate: false,
     },
@@ -55,6 +60,7 @@ export const useAppStore = create((set, get) => {
       // Reset state
       set({
         studentId,
+        activeTab: 'today',
         entries: [],
         todos: [],
         reminders: [],
@@ -63,6 +69,7 @@ export const useAppStore = create((set, get) => {
         tasks: [],
         goals: [],
         comments: [],
+        vocab: [],
         dailyTargets: null,
         examDate: null,
         examConfirmed: false,
@@ -75,6 +82,7 @@ export const useAppStore = create((set, get) => {
           tasks: false,
           goals: false,
           comments: false,
+          vocab: false,
           dailyTargets: false,
           examDate: false,
         },

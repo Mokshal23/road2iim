@@ -7,6 +7,7 @@ import TodayView from '../components/TodayView';
 import TaskBoard from '../components/TaskBoard';
 import AeonLog from '../components/AeonLog';
 import MockTests from '../components/MockTests';
+import VocabBankSection from '../components/VocabBankSection';
 import ConfigWarning from '../components/ConfigWarning';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { useEntries } from '../hooks/useEntries';
@@ -19,22 +20,15 @@ import { useMockTests } from '../hooks/useMockTests';
 import { useTasks } from '../hooks/useTasks';
 import { useTodos, addTodo } from '../hooks/useTodos';
 import { useReminders } from '../hooks/useReminders';
+import { useVocab } from '../hooks/useVocab';
 import { firebaseConfigured } from '../firebase';
 import { todayStr, shiftWeek } from '../utils/dates';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
 import { runMigration } from '../utils/migration';
 
-const TABS = [
-  { key: 'today', label: 'Today' },
-  { key: 'log', label: 'Log session' },
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'aeon', label: 'Aeon log' },
-  { key: 'mocks', label: 'Mock tests' },
-];
-
 export default function Home() {
-  const [tab, setTab] = useState('today');
+  const activeTab = useAppStore((state) => state.activeTab);
   const [logSection, setLogSection] = useState('VARC');
   const [dashboardSection, setDashboardSection] = useState('VARC');
   const [quickMode, setQuickMode] = useState(false);
@@ -65,6 +59,7 @@ export default function Home() {
   const { tasks } = useTasks(studentId);
   const { todos, loading: todosLoading } = useTodos(studentId);
   const { reminders } = useReminders(studentId);
+  const { vocabList } = useVocab(studentId);
 
   useEffect(() => {
     if (loading || todosLoading || entries.length === 0) return;
@@ -110,23 +105,15 @@ export default function Home() {
 
   return (
     <div className="page">
-      <div className="tab-row">
-        {TABS.map((t) => (
-          <button key={t.key} className={`tab ${tab === t.key ? 'tab--active' : ''}`} onClick={() => setTab(t.key)}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       {loading ? (
-        <SkeletonLoader type={tab === 'today' ? 'today' : 'card'} />
-      ) : tab === 'today' ? (
+        <SkeletonLoader type={activeTab === 'today' ? 'today' : 'card'} />
+      ) : activeTab === 'today' ? (
         <TodayView
           entries={entries} aeonArticles={articles} mocks={mocks} targets={targets}
           tasks={tasks} examDate={examDate} examConfirmed={confirmed} readOnlyGoals={false}
           todos={todos} reminders={reminders}
         />
-      ) : tab === 'log' ? (
+      ) : activeTab === 'log' ? (
         <>
           <div className="log-tab-head">
             <SectionTabs value={logSection} onChange={setLogSection} />
@@ -141,16 +128,18 @@ export default function Home() {
             <EntryForm key={logSection} sectionKey={logSection} entries={entries} />
           )}
         </>
-      ) : tab === 'dashboard' ? (
+      ) : activeTab === 'dashboard' ? (
         <Dashboard
           entries={entries} mocks={mocks} tasks={tasks} articles={articles}
           goals={goals} comments={comments} readOnly={false} canWriteComments={false} viewerRole="student"
           sectionKey={dashboardSection} onSectionChange={setDashboardSection}
         />
-      ) : tab === 'aeon' ? (
+      ) : activeTab === 'aeon' ? (
         <AeonLog articles={articles} readOnly={false} entries={entries} />
-      ) : (
+      ) : activeTab === 'mocks' ? (
         <MockTests mocks={mocks} readOnly={false} />
+      ) : (
+        <VocabBankSection articles={articles} entries={entries} vocabList={vocabList} studentId={studentId} readOnly={false} />
       )}
     </div>
   );

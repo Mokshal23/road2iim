@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { AEON_DIFFICULTY, TOPIC_SUGGESTIONS } from '../constants';
 import { addAeonArticle, deleteAeonArticle, updateAeonArticle, updateAeonArticleFields } from '../hooks/useAeonArticles';
-import { updateEntry } from '../hooks/useEntries';
 import { formatPretty, todayStr, formatShort } from '../utils/dates';
 import { defineWordWithGemini, gradeAeonSummaryWithGemini, generateAeonQuizWithGemini } from '../utils/ai';
 import Modal from './Modal';
@@ -32,20 +31,18 @@ function blankForm() {
   };
 }
 
-export default function AeonLog({ articles = [], entries = [], readOnly = false }) {
+export default function AeonLog({ articles = [], readOnly = false }) {
   const [tab, setTab] = useState('log');
   const [editing, setEditing] = useState(null);
   
   // States for interactive modals
   const [activeGradeArticle, setActiveGradeArticle] = useState(null);
   const [activeQuizArticle, setActiveQuizArticle] = useState(null);
-  const [showVocabQuiz, setShowVocabQuiz] = useState(false);
 
   return (
     <div>
       <div className="subtab-row">
         <button className={`subtab ${tab === 'log' ? 'subtab--active' : ''}`} onClick={() => setTab('log')}>Articles</button>
-        <button className={`subtab ${tab === 'vocab' ? 'subtab--active' : ''}`} onClick={() => setTab('vocab')}>Vocab bank</button>
         <button className={`subtab ${tab === 'analysis' ? 'subtab--active' : ''}`} onClick={() => setTab('analysis')}>Analysis</button>
       </div>
 
@@ -60,12 +57,6 @@ export default function AeonLog({ articles = [], entries = [], readOnly = false 
             onPlayQuiz={setActiveQuizArticle}
           />
         </>
-      ) : tab === 'vocab' ? (
-        <VocabBank 
-          articles={articles} 
-          entries={entries} 
-          onPlayVocabQuiz={() => setShowVocabQuiz(true)}
-        />
       ) : (
         <AeonAnalysis articles={articles} />
       )}
@@ -85,12 +76,6 @@ export default function AeonLog({ articles = [], entries = [], readOnly = false 
       {activeQuizArticle && (
         <Modal title="CAT RC Quiz" onClose={() => setActiveQuizArticle(null)}>
           <CATRCQuizModal article={activeQuizArticle} onClose={() => setActiveQuizArticle(null)} />
-        </Modal>
-      )}
-
-      {showVocabQuiz && (
-        <Modal title="Vocab Revision Quiz" onClose={() => setShowVocabQuiz(false)}>
-          <VocabQuizModal articles={articles} entries={entries} onClose={() => setShowVocabQuiz(false)} />
         </Modal>
       )}
     </div>
@@ -324,145 +309,7 @@ function ArticleList({ articles = [], readOnly, onEdit, onGradeSummary, onPlayQu
   );
 }
 
-function VocabBank({ articles = [], entries = [], onPlayVocabQuiz }) {
-  const [search, setSearch] = useState('');
-  const [filterMode, setFilterMode] = useState('all'); // 'all', 'learning', 'mastered'
 
-  const words = useMemo(() => {
-    const all = [];
-    const safeArticles = articles || [];
-    for (const a of safeArticles) {
-      if (a) {
-        for (const v of a.vocab || []) {
-          if (v?.word) all.push({ ...v, articleTitle: a.title, date: a.date, parentType: 'article', parentId: a.id, fullVocab: a.vocab });
-        }
-      }
-    }
-    for (const e of (entries || [])) {
-      if (e) {
-        for (const v of e.vocab || []) {
-          if (v?.word) all.push({ ...v, articleTitle: `Practice: ${e.topic}, ${e.date}`, date: e.date, parentType: 'entry', parentId: e.id, fullVocab: e.vocab });
-        }
-      }
-    }
-    return all.sort((a, b) => (a.word || '').localeCompare(b.word || ''));
-  }, [articles, entries]);
-
-  const filtered = useMemo(() => {
-    return words.filter((w) => {
-      const matchSearch = w.word.toLowerCase().includes(search.toLowerCase());
-      if (filterMode === 'mastered') return matchSearch && w.mastered;
-      if (filterMode === 'learning') return matchSearch && !w.mastered;
-      return matchSearch;
-    });
-  }, [words, search, filterMode]);
-
-  async function toggleMastery(wordObj) {
-    const newVocab = wordObj.fullVocab.map(v => 
-      v.word === wordObj.word ? { ...v, mastered: !v.mastered } : v
-    );
-    try {
-      if (wordObj.parentType === 'article') {
-        await updateAeonArticleFields(wordObj.parentId, { vocab: newVocab });
-      } else {
-        await updateEntry(wordObj.parentId, { vocab: newVocab });
-      }
-    } catch (err) {
-      console.error('Failed to toggle mastery:', err);
-    }
-  }
-
-  return (
-    <div className="card">
-      <div className="card__head">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between' }}>
-          <h3>Vocab bank ({words.length})</h3>
-          {words.length > 0 && (
-            <button className="btn btn--primary btn--sm vocab-revision-quiz-btn" onClick={onPlayVocabQuiz}>
-              🧠 Play Revision Quiz
-            </button>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '12px' }}>
-          <input 
-            type="text" 
-            placeholder="Search words…" 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            style={{ flex: 1 }}
-          />
-          <select 
-            value={filterMode} 
-            onChange={(e) => setFilterMode(e.target.value)}
-            style={{ width: '130px', padding: '6px' }}
-          >
-            <option value="all">Show All</option>
-            <option value="learning">Need Practice</option>
-            <option value="mastered">Mastered</option>
-          </select>
-        </div>
-      </div>
-      {filtered.length === 0 ? (
-        <p className="empty">No words match yet.</p>
-      ) : (
-        <ul className="vocab-bank-list">
-          {filtered.map((w, i) => (
-            <li 
-              key={i} 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                padding: '10px 0', 
-                borderBottom: '1px solid var(--border)',
-                background: w.mastered ? 'rgba(54, 143, 99, 0.02)' : 'transparent'
-              }}
-            >
-              <button 
-                type="button"
-                onClick={() => toggleMastery(w)}
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  cursor: 'pointer', 
-                  fontSize: '16px',
-                  marginRight: '12px',
-                  padding: 0,
-                  color: w.mastered ? 'var(--success)' : 'var(--text-secondary)'
-                }}
-                title={w.mastered ? "Mark as Learning" : "Mark as Mastered"}
-              >
-                {w.mastered ? '✓' : '○'}
-              </button>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                <strong style={w.mastered ? { color: 'var(--success)' } : {}}>{w.word}</strong>
-                <button
-                  type="button"
-                  onClick={() => speakWord(w.word)}
-                  aria-label={`Pronounce ${w.word}`}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '2px 6px',
-                    color: 'var(--text-secondary)',
-                    borderRadius: '4px',
-                    lineHeight: 1
-                  }}
-                  title="Listen to pronunciation"
-                >
-                  🔊
-                </button>
-                {w.meaning && <span className="vocab-bank-list__meaning"> — {w.meaning}</span>}
-                <span className="vocab-bank-list__source"> · {w.articleTitle}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 function AeonAnalysis({ articles = [] }) {
   const topicStats = useMemo(() => {
@@ -1139,322 +986,7 @@ function CATRCQuizModal({ article, onClose }) {
   );
 }
 
-function VocabQuizModal({ articles, entries = [], onClose }) {
-  const [mode, setMode] = useState('select'); 
-  const [poolType, setPoolType] = useState('all'); 
-  const [shuffledWords, setShuffledWords] = useState([]);
-  
-  const [flashcardIdx, setFlashcardIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
 
-  const [mcqQuestions, setMcqQuestions] = useState([]);
-  const [mcqIdx, setMcqIdx] = useState(0);
-  const [mcqAnswers, setMcqAnswers] = useState({}); 
-  const [mcqScore, setMcqScore] = useState(0);
-
-  const allWords = useMemo(() => {
-    const list = [];
-    for (const a of articles) {
-      for (const v of a.vocab || []) {
-        if (v.word && v.meaning) {
-          list.push({ ...v, parentType: 'article', parentId: a.id, fullVocab: a.vocab });
-        }
-      }
-    }
-    for (const e of (entries || [])) {
-      for (const v of e.vocab || []) {
-        if (v.word && v.meaning) {
-          list.push({ ...v, parentType: 'entry', parentId: e.id, fullVocab: e.vocab });
-        }
-      }
-    }
-    return list;
-  }, [articles, entries]);
-
-  function startQuiz(selectedMode) {
-    let pool = [...allWords];
-    if (poolType === 'unmastered') {
-      pool = pool.filter(w => !w.mastered);
-    }
-    
-    if (pool.length === 0) {
-      alert(poolType === 'unmastered' ? 'No unmastered words found!' : 'No vocabulary words found. Please log some articles with vocabulary first.');
-      return;
-    }
-
-    const shuffled = pool.sort(() => 0.5 - Math.random());
-    setShuffledWords(shuffled);
-
-    if (selectedMode === 'flashcard') {
-      setFlashcardIdx(0);
-      setFlipped(false);
-      setMode('flashcard');
-    } else if (selectedMode === 'mcq') {
-      const qCount = Math.min(10, shuffled.length);
-      const questions = [];
-      
-      const fallbackDistractors = [
-        "To praise highly or speak of with approval",
-        "A state of temporary disuse or suspension",
-        "Showing a rude and arrogant lack of respect",
-        "Making or constituting a disturbingly harsh and loud noise",
-        "Very attentive to and concerned about accuracy and detail",
-        "Not revealing one's thoughts or feelings readily",
-        "Make someone feel isolated or estranged",
-        "An item of additional material at the end of a document"
-      ];
-
-      for (let i = 0; i < qCount; i++) {
-        const word = shuffled[i];
-        
-        let otherMeanings = allWords
-          .filter(w => w.word !== word.word)
-          .map(w => w.meaning);
-        
-        otherMeanings = [...new Set(otherMeanings)];
-
-        if (otherMeanings.length < 3) {
-          otherMeanings = [...otherMeanings, ...fallbackDistractors];
-        }
-
-        const distractors = otherMeanings
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 3);
-
-        const optionsList = [word.meaning, ...distractors]
-          .sort(() => 0.5 - Math.random());
-
-        questions.push({
-          wordObj: word,
-          options: optionsList,
-          correctIdx: optionsList.indexOf(word.meaning)
-        });
-      }
-
-      setMcqQuestions(questions);
-      setMcqIdx(0);
-      setMcqAnswers({});
-      setMcqScore(0);
-      setMode('mcq');
-    }
-  }
-
-  async function markMastery(wordObj, isMastered) {
-    const newVocab = wordObj.fullVocab.map(v => 
-      v.word === wordObj.word ? { ...v, mastered: isMastered } : v
-    );
-    try {
-      if (wordObj.parentType === 'article') {
-        await updateAeonArticleFields(wordObj.parentId, { vocab: newVocab });
-      } else {
-        await updateEntry(wordObj.parentId, { vocab: newVocab });
-      }
-    } catch (err) {
-      console.error('Failed to update mastery:', err);
-    }
-  }
-
-  function handleFlashcardNext(mastered) {
-    const currentWord = shuffledWords[flashcardIdx];
-    markMastery(currentWord, mastered);
-    setFlipped(false);
-    setTimeout(() => {
-      setFlashcardIdx(prev => prev + 1);
-    }, 150);
-  }
-
-  function handleMcqSelect(optionIdx) {
-    if (mcqAnswers[mcqIdx] !== undefined) return;
-    const correctIdx = mcqQuestions[mcqIdx].correctIdx;
-    setMcqAnswers(prev => ({ ...prev, [mcqIdx]: optionIdx }));
-    if (optionIdx === correctIdx) {
-      setMcqScore(prev => prev + 1);
-    }
-  }
-
-  function handleMcqNext() {
-    if (mcqIdx < mcqQuestions.length - 1) {
-      setMcqIdx(prev => prev + 1);
-    } else {
-      setMode('mcq-finished');
-    }
-  }
-
-  return (
-    <div>
-      {mode === 'select' && (
-        <div style={{ textAlign: 'center', padding: '10px 0' }}>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '13.5px' }}>
-            Revise your saved vocabulary words. Total words in bank: <strong>{allWords.length}</strong>.
-          </p>
-
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '24px' }}>
-            <label style={{ fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-              <input 
-                type="radio" 
-                name="vocab-pool" 
-                checked={poolType === 'all'} 
-                onChange={() => setPoolType('all')} 
-              />
-              All Words
-            </label>
-            <label style={{ fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-              <input 
-                type="radio" 
-                name="vocab-pool" 
-                checked={poolType === 'unmastered'} 
-                onChange={() => setPoolType('unmastered')} 
-              />
-              Need Practice ({allWords.filter(w => !w.mastered).length})
-            </label>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="card hoverable" onClick={() => startQuiz('flashcard')} style={{ cursor: 'pointer', textAlign: 'center', padding: '24px 16px' }}>
-              <span style={{ fontSize: '32px', display: 'block', marginBottom: '10px' }}>🎴</span>
-              <strong style={{ fontSize: '14px', fontWeight: 600 }}>Flashcards Mode</strong>
-              <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Flip card to reveal meaning and mark as Mastered / Need Practice.</p>
-            </div>
-            
-            <div className="card hoverable" onClick={() => startQuiz('mcq')} style={{ cursor: 'pointer', textAlign: 'center', padding: '24px 16px' }}>
-              <span style={{ fontSize: '32px', display: 'block', marginBottom: '10px' }}>📝</span>
-              <strong style={{ fontSize: '14px', fontWeight: 600 }}>Multiple Choice Quiz</strong>
-              <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Test your comprehension with 10 random words from your bank.</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {mode === 'flashcard' && (
-        <div>
-          {flashcardIdx < shuffledWords.length ? (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                <span>Word {flashcardIdx + 1} of {shuffledWords.length}</span>
-                <span>Pool: {poolType === 'unmastered' ? 'Unmastered' : 'All'}</span>
-              </div>
-              
-              <div className="quiz-progress-bar">
-                <div className="quiz-progress-fill" style={{ width: `${((flashcardIdx + 1) / shuffledWords.length) * 100}%` }}></div>
-              </div>
-
-              <div className="flashcard-container" onClick={() => setFlipped(!flipped)}>
-                <div className={`flashcard ${flipped ? 'flipped' : ''}`}>
-                  <div className="flashcard-front">
-                    <h2>{shuffledWords[flashcardIdx].word}</h2>
-                    <span className="flashcard-hint">Click card to reveal meaning</span>
-                  </div>
-                  <div className="flashcard-back">
-                    <h2 style={{ fontSize: '20px', color: 'var(--blue)', marginBottom: '12px' }}>{shuffledWords[flashcardIdx].word}</h2>
-                    <p style={{ fontSize: '14.5px', color: 'var(--text)' }}>{shuffledWords[flashcardIdx].meaning}</p>
-                    <span className="flashcard-hint" style={{ marginTop: 'auto', color: 'var(--text-secondary)' }}>Click to flip back</span>
-                  </div>
-                </div>
-              </div>
-
-              {flipped && (
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', animation: 'fadeIn 0.2s' }}>
-                  <button className="btn btn--ghost" style={{ borderColor: 'var(--danger)', color: 'var(--danger)', background: 'rgba(189,72,86,0.05)' }} onClick={() => handleFlashcardNext(false)}>
-                    ❌ Need Practice
-                  </button>
-                  <button className="btn btn--primary" style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => handleFlashcardNext(true)}>
-                    ✅ Mastered
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '20px' }}>
-              <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>🎉</span>
-              <h4>Practice Completed!</h4>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', margin: '0 0 20px' }}>
-                You reviewed all {shuffledWords.length} words in this session.
-              </p>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                <button className="btn btn--primary" onClick={() => setMode('select')}>Back to Selector</button>
-                <button className="btn btn--ghost" onClick={onClose}>Close</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {mode === 'mcq' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            <span>Question {mcqIdx + 1} of {mcqQuestions.length}</span>
-            <span>Score: {mcqScore} / {mcqQuestions.length}</span>
-          </div>
-
-          <div className="quiz-progress-bar">
-            <div className="quiz-progress-fill" style={{ width: `${((mcqIdx + 1) / mcqQuestions.length) * 100}%` }}></div>
-          </div>
-
-          <div className="card" style={{ background: 'var(--bg)', marginBottom: '16px', padding: '18px', textAlign: 'center' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>Define the word</span>
-            <h2 style={{ fontSize: '24px', margin: '6px 0 0', fontWeight: 700 }}>{mcqQuestions[mcqIdx].wordObj.word}</h2>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            {mcqQuestions[mcqIdx].options.map((option, idx) => {
-              const selectedIdx = mcqAnswers[mcqIdx];
-              const isSelected = selectedIdx === idx;
-              const isCorrect = mcqQuestions[mcqIdx].correctIdx === idx;
-
-              let optClass = 'quiz-option';
-              if (selectedIdx !== undefined) {
-                if (isCorrect) optClass += ' quiz-option--correct';
-                else if (isSelected) optClass += ' quiz-option--wrong';
-              }
-
-              return (
-                <button
-                  key={idx}
-                  className={optClass}
-                  disabled={selectedIdx !== undefined}
-                  onClick={() => handleMcqSelect(idx)}
-                >
-                  <span className="quiz-option__label">{String.fromCharCode(65 + idx)}</span>
-                  <span>{option}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {mcqAnswers[mcqIdx] !== undefined && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
-              <span style={{ fontSize: '13.5px', color: mcqAnswers[mcqIdx] === mcqQuestions[mcqIdx].correctIdx ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
-                {mcqAnswers[mcqIdx] === mcqQuestions[mcqIdx].correctIdx ? '✓ Correct!' : '❌ Incorrect'}
-              </span>
-              <button className="btn btn--primary" onClick={handleMcqNext}>
-                {mcqIdx === mcqQuestions.length - 1 ? 'Finish Quiz' : 'Next Question ➔'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {mode === 'mcq-finished' && (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>🏆</span>
-          <h4>Quiz Finished!</h4>
-          <h2 style={{ fontSize: '32px', margin: '10px 0', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-            {mcqScore} / {mcqQuestions.length} Correct
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', margin: '0 0 20px', lineHeight: 1.4 }}>
-            {mcqScore === mcqQuestions.length ? '🎓 Perfect score! You have completely mastered these words.' :
-             mcqScore >= mcqQuestions.length * 0.7 ? '👍 Nice job! Keep practicing to get 100% accuracy.' :
-             '📚 Spend more time with flashcards to reinforce word meanings.'}
-          </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-            <button className="btn btn--primary" onClick={() => setMode('select')}>Back to Selector</button>
-            <button className="btn btn--ghost" onClick={onClose}>Close</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function SummaryComprehensionTrend({ articles = [] }) {
   const data = useMemo(() => {

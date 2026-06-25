@@ -269,6 +269,14 @@ export const TaskWriteSchema = z.object({
   completedAt: z.string().nullable().default(null),
 });
 
+export const VocabDirectWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  word: z.string().trim().min(1, "Vocab word cannot be empty"),
+  meaning: z.string().trim().default(''),
+  mastered: z.boolean().default(false),
+  createdAt: z.string().min(1, "Creation timestamp is required"),
+});
+
 // Helper validation functions
 export function validateWrite(schema, data) {
   const result = schema.safeParse(data);

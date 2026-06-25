@@ -18,6 +18,8 @@ export default function App() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, registerRole } = useUserRole(user);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const activeTab = useAppStore((state) => state.activeTab);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -39,6 +41,22 @@ export default function App() {
   }, []);
 
   const authRequired = firebaseConfigured;
+  const showNav = user && role && role !== 'unregistered';
+  const tabs = role === 'student' ? [
+    { key: 'today', label: 'Today' },
+    { key: 'log', label: 'Log session' },
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'aeon', label: 'Aeon log' },
+    { key: 'mocks', label: 'Mock tests' },
+    { key: 'vocab', label: 'Vocab bank' },
+  ] : [
+    { key: 'today', label: 'Today' },
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'aeon', label: 'Aeon log' },
+    { key: 'mocks', label: 'Mock tests' },
+    { key: 'tasks', label: 'Tasks' },
+    { key: 'vocab', label: 'Vocab bank' },
+  ];
 
   let content;
 
@@ -64,7 +82,21 @@ export default function App() {
               title={isOnline ? 'Connected to Cloud Sync' : 'Working Offline (Local Cache Active)'}
             />
           </div>
-          <span className="app-header__sub">VARC · LRDI · QA tracker</span>
+
+          {showNav && (
+            <nav className="header-tabs">
+              {tabs.map((t) => (
+                <button
+                  key={t.key}
+                  className={`header-tab ${activeTab === t.key ? 'header-tab--active' : ''}`}
+                  onClick={() => setActiveTab(t.key)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+          )}
+
           <div className="app-header__actions">
             <button className="icon-btn theme-toggle" onClick={toggle} aria-label="Toggle theme">
               {theme === 'dark' ? '☀️' : '🌙'}

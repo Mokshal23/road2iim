@@ -120,6 +120,15 @@ cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
 
+## What's new in v9 (Header Navigation & Elevated AI Vocab Vault)
+
+- **📌 Unified Header Navigation**: Migrated all section selectors (*Today, Log Session, Dashboard, Aeon Log, Mock Tests, Tasks, and Vocab Bank*) from the bottom bar to a sleek, responsive pill-navigation selector in the sticky top header. Legacy subheaders have been removed for a clean, premium visual design.
+- **📚 First-Class Vocab Bank**: Elevated the Vocabulary Bank to a top-level tab. It merges logged words from Aeon logs, practice entries, and direct additions into one unified, searchable, filterable list.
+- **✨ Direct Add & AI Auto-Define**: Easily log words directly into your vault with a dedicated direct-entry form, featuring one-click Gemini auto-definition support.
+- **🧠 AI Daily Recommendations (Word of the Day)**: Get 3 sophisticated, daily-cached, CAT-relevant vocabulary suggestions generated dynamically by Gemini. Includes one-click `+ Add to bank` buttons that disable automatically when a word is already added.
+- **📝 Multi-Source Revision Quiz**: Rewrote the Flashcard and MCQ Vocab Revision Quizzes to query a unified pool of words from Aeon articles, practice sessions, and direct additions, with direct Firestore write operations for mastery status.
+- **📱 Responsive Mobile Wrapping**: Integrated CSS vertical stacking and horizontal overflow scroll support for header tabs on mobile devices, keeping the interface visually perfect and readable.
+
 ## What's new in v8 (Bulletproof Robustness, Security & Performance Upgrades)
 
 - **🛡️ React Error Boundaries**: Custom global and local card boundaries (`GlobalErrorBoundary` and `CardErrorBoundary`) that intercept component crashes (like chart/speech exceptions) and let the rest of the application load normally.
