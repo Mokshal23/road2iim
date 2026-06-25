@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { computeStats } from '../utils/calc';
 import { useAppStore } from '../store/useAppStore';
 import DOMPurify from 'dompurify';
+import { validateWrite, EntryWriteSchema } from '../utils/schemas';
 
 const COLLECTION = 'entries';
 
@@ -26,10 +27,12 @@ export async function saveSessionRows(rows) {
   if (!studentId) throw new Error('No active student ID in store.');
 
   const sessionId = crypto.randomUUID();
-  const writes = rows.map((row, idx) => {
+  const batch = writeBatch(db);
+
+  rows.forEach((row, idx) => {
     const stats = computeStats(row);
-    return addDoc(collection(db, COLLECTION), {
-      studentId, // Scoped to student
+    const dataToSave = {
+      studentId,
       date: row.date,
       section: row.section,
       subsection: row.subsection,
@@ -45,10 +48,19 @@ export async function saveSessionRows(rows) {
       sessionId,
       sessionSeq: idx,
       ...stats,
-      createdAt: new Date().toISOString(), // Use standard ISO string for offline-safety
+    };
+
+    // Client-side Zod validation pre-flight
+    validateWrite(EntryWriteSchema, dataToSave);
+
+    const docRef = doc(collection(db, COLLECTION));
+    batch.set(docRef, {
+      ...dataToSave,
+      createdAt: new Date().toISOString(),
     });
   });
-  await Promise.all(writes);
+
+  await batch.commit();
 }
 
 export async function deleteEntry(id) {

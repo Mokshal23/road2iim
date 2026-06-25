@@ -139,8 +139,19 @@ async function executeAICall({ model, prompt, base64Image, useSearch = false, ti
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || `Gemini API call failed for ${modelName}`);
+        let errMsg = `Gemini API call failed for ${modelName}`;
+        let errData = {};
+        try {
+          errData = await response.json();
+          errMsg = errData.error?.message || errMsg;
+        } catch {
+          // ignore JSON parsing error
+        }
+        const isRateLimit = response.status === 429 || errData.error?.status === 'RESOURCE_EXHAUSTED';
+        const error = new Error(errMsg);
+        error.isRateLimit = isRateLimit;
+        error.status = response.status;
+        throw error;
       }
 
       const result = await response.json();
@@ -200,8 +211,19 @@ async function executeAICall({ model, prompt, base64Image, useSearch = false, ti
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || `API call failed for ${modelName}`);
+        let errMsg = `API call failed for ${modelName}`;
+        let errData = {};
+        try {
+          errData = await response.json();
+          errMsg = errData.error?.message || errMsg;
+        } catch {
+          // ignore JSON parsing error
+        }
+        const isRateLimit = response.status === 429;
+        const error = new Error(errMsg);
+        error.isRateLimit = isRateLimit;
+        error.status = response.status;
+        throw error;
       }
 
       const data = await response.json();
@@ -213,12 +235,25 @@ async function executeAICall({ model, prompt, base64Image, useSearch = false, ti
   }
 }
 
+async function executeAICallWithRetry(args, retries = 3, delay = 1000) {
+  try {
+    return await executeAICall(args);
+  } catch (err) {
+    if (err.isRateLimit && retries > 0) {
+      console.warn(`Rate limit hit (429/RESOURCE_EXHAUSTED). Retrying in ${delay}ms... (${retries} attempts left)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return await executeAICallWithRetry(args, retries - 1, delay * 2);
+    }
+    throw err;
+  }
+}
+
 export async function callWithFallbackText(prompt, useSearch = false, timeoutMs = 60000) {
   let lastError = null;
   for (const model of FALLBACK_MODELS_TEXT) {
     try {
       console.log(`Attempting AI call using model: ${model}`);
-      const text = await executeAICall({ model, prompt, useSearch, timeoutMs });
+      const text = await executeAICallWithRetry({ model, prompt, useSearch, timeoutMs });
       if (text) return text;
     } catch (err) {
       console.warn(`Model ${model} failed:`, err.message || err);
@@ -233,7 +268,7 @@ export async function callWithFallbackVision(prompt, base64Image, timeoutMs = 60
   for (const model of FALLBACK_MODELS_VISION) {
     try {
       console.log(`Attempting Vision AI call using model: ${model}`);
-      const text = await executeAICall({ model, prompt, base64Image, timeoutMs });
+      const text = await executeAICallWithRetry({ model, prompt, base64Image, timeoutMs });
       if (text) return text;
     } catch (err) {
       console.warn(`Vision model ${model} failed:`, err.message || err);

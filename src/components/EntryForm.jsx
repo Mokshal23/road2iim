@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
+import { safeStorage } from '../utils/storage';
 import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS, DIFFICULTY_OPTIONS } from '../constants';
 import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
@@ -41,17 +42,10 @@ export default function EntryForm({ sectionKey, entries = [] }) {
   
   const [rows, setRows] = useState(() => {
     const draftKey = `entry_form_draft_${sectionKey}`;
-    try {
-      const draft = sessionStorage.getItem(draftKey);
-      if (draft) {
-        const parsed = JSON.parse(draft);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Re-generate keys to prevent UUID duplication on mount
-          return parsed.map(r => ({ ...r, key: r.key || crypto.randomUUID() }));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to read entry draft:', err);
+    const draft = safeStorage.getSessionItem(draftKey);
+    if (draft && Array.isArray(draft) && draft.length > 0) {
+      // Re-generate keys to prevent UUID duplication on mount
+      return draft.map(r => ({ ...r, key: r.key || crypto.randomUUID() }));
     }
     return [blankRow(sectionKey, defaults)];
   });
@@ -62,7 +56,7 @@ export default function EntryForm({ sectionKey, entries = [] }) {
   // Autosave rows to sessionStorage on changes
   useEffect(() => {
     const draftKey = `entry_form_draft_${sectionKey}`;
-    sessionStorage.setItem(draftKey, JSON.stringify(rows));
+    safeStorage.setSessionItem(draftKey, rows);
   }, [rows, sectionKey]);
 
   function handleAutofill(parsed) {
@@ -171,7 +165,7 @@ export default function EntryForm({ sectionKey, entries = [] }) {
       useAppStore.getState().showToast(msg, 'success');
       
       // Clear draft on successful save
-      sessionStorage.removeItem(`entry_form_draft_${sectionKey}`);
+      safeStorage.removeSessionItem(`entry_form_draft_${sectionKey}`);
       
       setRows([blankRow(sectionKey, defaults)]);
     } catch (e2) {

@@ -8,37 +8,62 @@ import Reminders from './Reminders';
 import AICoachSummary from './AICoachSummary';
 import OnboardingGuide from './OnboardingGuide';
 import { todayStr, weekRange } from '../utils/dates';
+import { CardErrorBoundary } from './ErrorBoundary';
 
 export default function TodayView({
-  entries, aeonArticles = [], mocks = [], targets, tasks = [], examDate, examConfirmed, readOnlyGoals = false,
+  entries = [], aeonArticles = [], mocks = [], targets, tasks = [], examDate, examConfirmed, readOnlyGoals = false,
   todos = [], reminders = [],
 }) {
+  const safeEntries = entries || [];
+  const safeArticles = aeonArticles || [];
+  const safeMocks = mocks || [];
+
   const activeDates = [
-    ...entries.map((e) => e.date),
-    ...aeonArticles.map((a) => a.date),
-    ...mocks.map((m) => m.date),
+    ...safeEntries.map((e) => e?.date).filter(Boolean),
+    ...safeArticles.map((a) => a?.date).filter(Boolean),
+    ...safeMocks.map((m) => m?.date).filter(Boolean),
   ];
 
   const today = todayStr();
   const { start, end } = weekRange(today);
-  const weekEntries = entries.filter((e) => e.date >= start && e.date <= end);
-  const weekArticles = aeonArticles.filter((a) => a.date >= start && a.date <= end);
+  const weekEntries = safeEntries.filter((e) => e && e.date >= start && e.date <= end);
+  const weekArticles = safeArticles.filter((a) => a && a.date >= start && a.date <= end);
 
   return (
     <div className="today-view">
-      <AICoachSummary entries={entries} mocks={mocks} articles={aeonArticles} />
-      <OnboardingGuide />
+      <CardErrorBoundary>
+        <AICoachSummary entries={safeEntries} mocks={safeMocks} articles={safeArticles} />
+      </CardErrorBoundary>
+
+      <CardErrorBoundary>
+        <OnboardingGuide />
+      </CardErrorBoundary>
+
       <div className="today-grid">
         <div className="today-grid__left">
-          <ExamCountdown examDate={examDate} confirmed={examConfirmed} targets={targets} entries={entries} readOnly={readOnlyGoals} />
-          <DailyGoalMeter entries={entries} aeonArticles={aeonArticles} targets={targets} readOnly={readOnlyGoals} />
-          <SectionBalance entries={weekEntries} aeonArticles={weekArticles} />
-          <StreakHeatmap activeDates={activeDates} />
+          <CardErrorBoundary>
+            <ExamCountdown examDate={examDate} confirmed={examConfirmed} targets={targets} entries={safeEntries} readOnly={readOnlyGoals} />
+          </CardErrorBoundary>
+          <CardErrorBoundary>
+            <DailyGoalMeter entries={safeEntries} aeonArticles={safeArticles} targets={targets} readOnly={readOnlyGoals} />
+          </CardErrorBoundary>
+          <CardErrorBoundary>
+            <SectionBalance entries={weekEntries} aeonArticles={weekArticles} />
+          </CardErrorBoundary>
+          <CardErrorBoundary>
+            <StreakHeatmap activeDates={activeDates} />
+          </CardErrorBoundary>
         </div>
         <div className="today-grid__right">
-          <PersonalTodos todos={todos} />
-          <Reminders reminders={reminders} />
-          <TaskBoard tasks={tasks} canManage={false} />
+          <CardErrorBoundary>
+            <PersonalTodos todos={todos} />
+          </CardErrorBoundary>
+          <CardErrorBoundary>
+            <Reminders reminders={reminders} />
+          </CardErrorBoundary>
+          <CardErrorBoundary>
+            <TaskBoard tasks={tasks} canManage={false} />
+          </CardErrorBoundary>
         </div>
       </div>
     </div>

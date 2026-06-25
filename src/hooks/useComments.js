@@ -3,6 +3,7 @@ import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAppStore } from '../store/useAppStore';
 import DOMPurify from 'dompurify';
+import { validateWrite, CommentWriteSchema } from '../utils/schemas';
 
 const COLLECTION = 'comments';
 
@@ -24,7 +25,7 @@ export async function addComment({ date, text, linkedEntryLabel, author = 'mento
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
-  await addDoc(collection(db, COLLECTION), {
+  const dataToSave = {
     studentId,
     date: date || null,
     text: DOMPurify.sanitize(text || ''),
@@ -32,14 +33,18 @@ export async function addComment({ date, text, linkedEntryLabel, author = 'mento
     author,
     parentId: null,
     createdAt: new Date().toISOString(),
-  });
+  };
+
+  validateWrite(CommentWriteSchema, dataToSave);
+
+  await addDoc(collection(db, COLLECTION), dataToSave);
 }
 
 export async function addReply({ parentId, text, author }) {
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
-  await addDoc(collection(db, COLLECTION), {
+  const dataToSave = {
     studentId,
     date: null,
     text: DOMPurify.sanitize(text || ''),
@@ -47,9 +52,14 @@ export async function addReply({ parentId, text, author }) {
     author,
     parentId,
     createdAt: new Date().toISOString(),
-  });
+  };
+
+  validateWrite(CommentWriteSchema, dataToSave);
+
+  await addDoc(collection(db, COLLECTION), dataToSave);
 }
 
 export async function removeComment(id) {
   await deleteDoc(doc(db, COLLECTION, id));
 }
+

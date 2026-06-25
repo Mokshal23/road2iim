@@ -3,6 +3,7 @@ import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestor
 import { db } from '../firebase';
 import { useAppStore } from '../store/useAppStore';
 import DOMPurify from 'dompurify';
+import { validateWrite, TodoWriteSchema } from '../utils/schemas';
 
 const COLLECTION = 'todos';
 
@@ -24,11 +25,17 @@ export async function addTodo({ text, dueDate }) {
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
-  await addDoc(collection(db, COLLECTION), {
+  const dataToSave = {
     studentId,
     text: DOMPurify.sanitize(text || ''),
     dueDate: dueDate || '',
     done: false,
+  };
+
+  validateWrite(TodoWriteSchema, dataToSave);
+
+  await addDoc(collection(db, COLLECTION), {
+    ...dataToSave,
     createdAt: new Date().toISOString(),
   });
 }

@@ -3,6 +3,7 @@ import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestor
 import { db } from '../firebase';
 import { useAppStore } from '../store/useAppStore';
 import DOMPurify from 'dompurify';
+import { validateWrite, TaskWriteSchema } from '../utils/schemas';
 
 const COLLECTION = 'tasks';
 
@@ -24,7 +25,7 @@ export async function addTask({ text, section, dueDate }) {
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
-  await addDoc(collection(db, COLLECTION), {
+  const dataToSave = {
     studentId,
     text: DOMPurify.sanitize(text || ''),
     section,
@@ -32,7 +33,11 @@ export async function addTask({ text, section, dueDate }) {
     status: 'pending',
     createdAt: new Date().toISOString(),
     completedAt: null,
-  });
+  };
+
+  validateWrite(TaskWriteSchema, dataToSave);
+
+  await addDoc(collection(db, COLLECTION), dataToSave);
 }
 
 export async function toggleTaskDone(task) {

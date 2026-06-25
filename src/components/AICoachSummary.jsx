@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { todayStr, shiftWeek } from '../utils/dates';
 import { callWithFallbackText } from '../utils/ai';
 import { useAppStore } from '../store/useAppStore';
+import { safeStorage } from '../utils/storage';
 
 // Standard fetch to Gemini API for text generation (with 2.5 -> 1.5 fallback)
 async function generateCoachBriefing(apiKey, activitySummary) {
@@ -23,9 +24,9 @@ ${JSON.stringify(activitySummary, null, 2)}
 }
 
 export default function AICoachSummary({ entries = [], mocks = [], articles = [] }) {
-  const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
-  const [summary, setSummary] = useState(localStorage.getItem('ai_coach_summary') || '');
-  const [lastUpdated, setLastUpdated] = useState(localStorage.getItem('ai_coach_updated') || '');
+  const [apiKey, setApiKey] = useState(() => safeStorage.getItem('gemini_api_key', ''));
+  const [summary, setSummary] = useState(() => safeStorage.getItem('ai_coach_summary', ''));
+  const [lastUpdated, setLastUpdated] = useState(() => safeStorage.getItem('ai_coach_updated', ''));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -33,7 +34,7 @@ export default function AICoachSummary({ entries = [], mocks = [], articles = []
     const trimmed = key.trim();
     if (!trimmed) return;
     setApiKey(trimmed);
-    localStorage.setItem('gemini_api_key', trimmed);
+    safeStorage.setItem('gemini_api_key', trimmed);
     useAppStore.getState().showToast('API Key saved successfully!', 'success');
   }
 
@@ -47,8 +48,8 @@ export default function AICoachSummary({ entries = [], mocks = [], articles = []
       setSummary(text);
       const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setLastUpdated(timestamp);
-      localStorage.setItem('ai_coach_summary', text);
-      localStorage.setItem('ai_coach_updated', timestamp);
+      safeStorage.setItem('ai_coach_summary', text);
+      safeStorage.setItem('ai_coach_updated', timestamp);
     } catch (err) {
       console.error(err);
       setError(err.message || 'Failed to fetch AI insights');
@@ -152,7 +153,7 @@ export default function AICoachSummary({ entries = [], mocks = [], articles = []
           cursor: 'pointer'
         }}
         onClick={() => {
-          localStorage.removeItem('gemini_api_key');
+          safeStorage.removeItem('gemini_api_key');
           setApiKey('');
           setSummary('');
           useAppStore.getState().showToast('API Key removed.', 'info');

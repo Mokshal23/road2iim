@@ -1350,3 +1350,23 @@ body[data-theme="light"] textarea:focus {
 .skeleton-pulse {
   animation: pulse 1.6s infinite ease-in-out;
 }
+
+/* Network Connection Status Dot */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.status-dot--online {
+  background-color: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+.status-dot--offline {
+  background-color: var(--amber);
+  box-shadow: 0 0 8px var(--amber);
+  animation: pulse 1.5s infinite ease-in-out;
+}

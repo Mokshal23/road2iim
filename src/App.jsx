@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import { useAuth, logout } from './hooks/useAuth';
@@ -6,6 +6,8 @@ import { useTheme } from './hooks/useTheme';
 import { useUserRole } from './hooks/useUserRole';
 import { firebaseConfigured } from './firebase';
 import Toast from './components/Toast';
+import { GlobalErrorBoundary } from './components/ErrorBoundary';
+import { useAppStore } from './store/useAppStore';
 
 // Lazy load visual pages to optimize bundle chunking
 const Home = React.lazy(() => import('./pages/Home'));
@@ -15,60 +17,90 @@ export default function App() {
   const { theme, toggle } = useTheme();
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, registerRole } = useUserRole(user);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      useAppStore.getState().showToast('⚡ Back online! Synchronizing local cache...', 'success');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      useAppStore.getState().showToast('⚠️ Working offline. Changes are saved locally.', 'info');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const authRequired = firebaseConfigured;
 
+  let content;
+
   if (authRequired && (authLoading || roleLoading)) {
-    return (
+    content = (
       <div className="auth-loading" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column', gap: 12 }}>
         <div className="spinner" style={{ fontSize: 24 }}>⏳</div>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Initializing Road2IIM...</p>
       </div>
     );
-  }
+  } else if (authRequired && !user) {
+    content = <Login />;
+  } else if (authRequired && role === 'unregistered') {
+    content = <RoleSelection onSelect={registerRole} />;
+  } else {
+    content = (
+      <BrowserRouter>
+        <header className="app-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link to="/" className="app-header__title">Road2IIM</Link>
+            <span 
+              className={`status-dot ${isOnline ? 'status-dot--online' : 'status-dot--offline'}`}
+              title={isOnline ? 'Connected to Cloud Sync' : 'Working Offline (Local Cache Active)'}
+            />
+          </div>
+          <span className="app-header__sub">VARC · LRDI · QA tracker</span>
+          <div className="app-header__actions">
+            <button className="icon-btn theme-toggle" onClick={toggle} aria-label="Toggle theme">
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            {authRequired && (
+              <button className="btn btn--ghost btn--sm" onClick={logout}>Sign out</button>
+            )}
+          </div>
+        </header>
 
-  if (authRequired && !user) {
-    return <Login />;
-  }
-
-  if (authRequired && role === 'unregistered') {
-    return <RoleSelection onSelect={registerRole} />;
+        <Suspense fallback={<div className="empty" style={{ padding: '60px 20px', textAlign: 'center' }}>Loading dashboard view...</div>}>
+          <Routes>
+            {role === 'student' ? (
+              <>
+                <Route path="/" element={<Home />} />
+                <Route path="/mentor" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            ) : (
+              <>
+                <Route path="/mentor" element={<Mentor />} />
+                <Route path="/" element={<Navigate to="/mentor" replace />} />
+                <Route path="*" element={<Navigate to="/mentor" replace />} />
+              </>
+            )}
+          </Routes>
+        </Suspense>
+        <Toast />
+      </BrowserRouter>
+    );
   }
 
   return (
-    <BrowserRouter>
-      <header className="app-header">
-        <Link to="/" className="app-header__title">Road2IIM</Link>
-        <span className="app-header__sub">VARC · LRDI · QA tracker</span>
-        <div className="app-header__actions">
-          <button className="icon-btn theme-toggle" onClick={toggle} aria-label="Toggle theme">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          {authRequired && (
-            <button className="btn btn--ghost btn--sm" onClick={logout}>Sign out</button>
-          )}
-        </div>
-      </header>
-
-      <Suspense fallback={<div className="empty" style={{ padding: '60px 20px', textAlign: 'center' }}>Loading dashboard view...</div>}>
-        <Routes>
-          {role === 'student' ? (
-            <>
-              <Route path="/" element={<Home />} />
-              <Route path="/mentor" element={<Navigate to="/" replace />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </>
-          ) : (
-            <>
-              <Route path="/mentor" element={<Mentor />} />
-              <Route path="/" element={<Navigate to="/mentor" replace />} />
-              <Route path="*" element={<Navigate to="/mentor" replace />} />
-            </>
-          )}
-        </Routes>
-      </Suspense>
-      <Toast />
-    </BrowserRouter>
+    <GlobalErrorBoundary>
+      {content}
+    </GlobalErrorBoundary>
   );
 }
 

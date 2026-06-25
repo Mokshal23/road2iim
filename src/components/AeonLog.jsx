@@ -32,7 +32,7 @@ function blankForm() {
   };
 }
 
-export default function AeonLog({ articles, entries = [], readOnly = false }) {
+export default function AeonLog({ articles = [], entries = [], readOnly = false }) {
   const [tab, setTab] = useState('log');
   const [editing, setEditing] = useState(null);
   
@@ -255,11 +255,12 @@ function AeonForm({ editArticle = null, onDone = null }) {
   );
 }
 
-function ArticleList({ articles, readOnly, onEdit, onGradeSummary, onPlayQuiz }) {
-  if (articles.length === 0) return <p className="empty">No articles logged yet.</p>;
+function ArticleList({ articles = [], readOnly, onEdit, onGradeSummary, onPlayQuiz }) {
+  const safeArticles = articles || [];
+  if (safeArticles.length === 0) return <p className="empty">No articles logged yet.</p>;
   return (
     <div className="aeon-list">
-      {articles.map((a) => (
+      {safeArticles.map((a) => (
         <div key={a.id} className="aeon-card">
           <div className="aeon-card__head">
             <strong>{a.title}</strong>
@@ -291,7 +292,7 @@ function ArticleList({ articles, readOnly, onEdit, onGradeSummary, onPlayQuiz })
 
           {a.vocab?.length > 0 && (
             <div className="aeon-card__vocab" style={{ marginBottom: '8px' }}>
-              {a.vocab.map((v, i) => (
+              {(a.vocab || []).map((v, i) => (
                 <span 
                   key={i} 
                   className="vocab-chip" 
@@ -323,23 +324,28 @@ function ArticleList({ articles, readOnly, onEdit, onGradeSummary, onPlayQuiz })
   );
 }
 
-function VocabBank({ articles, entries = [], onPlayVocabQuiz }) {
+function VocabBank({ articles = [], entries = [], onPlayVocabQuiz }) {
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all', 'learning', 'mastered'
 
   const words = useMemo(() => {
     const all = [];
-    for (const a of articles) {
-      for (const v of a.vocab || []) {
-        if (v.word) all.push({ ...v, articleTitle: a.title, date: a.date, parentType: 'article', parentId: a.id, fullVocab: a.vocab });
+    const safeArticles = articles || [];
+    for (const a of safeArticles) {
+      if (a) {
+        for (const v of a.vocab || []) {
+          if (v?.word) all.push({ ...v, articleTitle: a.title, date: a.date, parentType: 'article', parentId: a.id, fullVocab: a.vocab });
+        }
       }
     }
     for (const e of (entries || [])) {
-      for (const v of e.vocab || []) {
-        if (v.word) all.push({ ...v, articleTitle: `Practice: ${e.topic}, ${e.date}`, date: e.date, parentType: 'entry', parentId: e.id, fullVocab: e.vocab });
+      if (e) {
+        for (const v of e.vocab || []) {
+          if (v?.word) all.push({ ...v, articleTitle: `Practice: ${e.topic}, ${e.date}`, date: e.date, parentType: 'entry', parentId: e.id, fullVocab: e.vocab });
+        }
       }
     }
-    return all.sort((a, b) => a.word.localeCompare(b.word));
+    return all.sort((a, b) => (a.word || '').localeCompare(b.word || ''));
   }, [articles, entries]);
 
   const filtered = useMemo(() => {
@@ -458,11 +464,12 @@ function VocabBank({ articles, entries = [], onPlayVocabQuiz }) {
   );
 }
 
-function AeonAnalysis({ articles }) {
+function AeonAnalysis({ articles = [] }) {
   const topicStats = useMemo(() => {
     const map = {};
-    for (const a of articles) {
-      if (a.wordCount > 0 && a.timeTaken > 0) {
+    const safeArticles = articles || [];
+    for (const a of safeArticles) {
+      if (a && a.wordCount > 0 && a.timeTaken > 0) {
         if (!map[a.topic]) map[a.topic] = [];
         map[a.topic].push(a);
       }
@@ -477,8 +484,9 @@ function AeonAnalysis({ articles }) {
   }, [articles]);
 
   const speedDrilldown = useMemo(() => {
-    return articles
-      .filter((a) => a.wordCount > 0 && a.timeTaken > 0)
+    const safeArticles = articles || [];
+    return safeArticles
+      .filter((a) => a && a.wordCount > 0 && a.timeTaken > 0)
       .sort((a, b) => b.readingSpeed - a.readingSpeed);
   }, [articles]);
 
@@ -1448,10 +1456,11 @@ function VocabQuizModal({ articles, entries = [], onClose }) {
   );
 }
 
-function SummaryComprehensionTrend({ articles }) {
+function SummaryComprehensionTrend({ articles = [] }) {
   const data = useMemo(() => {
-    return articles
-      .filter((a) => a.summaryGrade && typeof a.summaryGrade.score === 'number')
+    const safeArticles = articles || [];
+    return safeArticles
+      .filter((a) => a && a.summaryGrade && typeof a.summaryGrade.score === 'number')
       .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
       .map((a) => ({ 
         day: formatShort(a.date), 

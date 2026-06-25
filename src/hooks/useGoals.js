@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAppStore } from '../store/useAppStore';
+import { validateWrite, GoalWriteSchema } from '../utils/schemas';
 
 const COLLECTION = 'goals';
 
@@ -23,9 +24,15 @@ export async function addGoal(goal) {
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
-  await addDoc(collection(db, COLLECTION), {
+  const dataToSave = {
     ...goal,
-    studentId, // Scoped to student
+    studentId,
+  };
+
+  validateWrite(GoalWriteSchema, dataToSave);
+
+  await addDoc(collection(db, COLLECTION), {
+    ...dataToSave,
     createdAt: new Date().toISOString(),
   });
 }

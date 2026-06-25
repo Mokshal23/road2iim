@@ -120,6 +120,16 @@ cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
 
+## What's new in v8 (Bulletproof Robustness, Security & Performance Upgrades)
+
+- **🛡️ React Error Boundaries**: Custom global and local card boundaries (`GlobalErrorBoundary` and `CardErrorBoundary`) that intercept component crashes (like chart/speech exceptions) and let the rest of the application load normally.
+- **🌐 Network Sync Monitor & Toast Sync**: Pulsing connectivity status indicator dot (`🟢 Connected` / `🟡 Working Offline`) in the header that uses window events and Zustand toasts to inform users when they are working offline.
+- **💾 Self-Healing Cache (`safeStorage`)**: Overhauled storage wrapper that captures JSON parse errors in local/session storage, automatically heals the key with default values, and prevents client-side boot loops.
+- **📐 Zod Pre-Flight Database Write Verification**: Strictly validates every database write payload client-side right before pushing to Firestore, preventing database corruption and alerting users of empty or incorrect fields.
+- **⏳ AI Rate-Limit Exponential Backoff Retries**: Integrated intelligent retries with backoff inside the AI Coach and quiz engines, gracefully recovering from `429` rate-limit errors.
+- **⛓️ Atomic Firestore Write Batches**: Refactored multi-row writes (like practice session logs) to use atomic Firestore `writeBatch` transactions, keeping database states clean and robust.
+- **🛡️ Defensive Chaining Audits**: Overhauled data mapping and filtering loops in dashboard views (`Dashboard.jsx`, `TodayView.jsx`, `AeonLog.jsx`) with defensive chaining (`?.` and fallback `|| []`), eliminating white-screen errors if database collections contain empty records.
+
 ## What's new in v7 (Premium Onboarding & Robust UX/UI Upgrades)
 
 - **🔐 Self-Signup & Account Registration**: Direct user signup page with email/password registration, password visibility toggles, and user-friendly translations of Firebase error codes.

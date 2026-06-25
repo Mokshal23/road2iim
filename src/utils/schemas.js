@@ -148,3 +148,133 @@ function extractJSONBlock(text) {
   }
   return clean;
 }
+
+// === Pre-Flight Database Write Schemas ===
+
+export const VocabItemSchema = z.object({
+  word: z.string().trim().min(1, "Vocab word cannot be empty"),
+  meaning: z.string().trim().default(''),
+  mastered: z.boolean().default(false),
+});
+
+export const EntryWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  date: z.string().min(1, "Date is required"),
+  section: z.enum(['VARC', 'LRDI', 'QA']),
+  subsection: z.string().min(1, "Subsection is required"),
+  topic: z.string().trim().default('General'),
+  label: z.string().trim().default(''),
+  timeTaken: z.preprocess((val) => Number(val), z.number().positive("Time taken must be positive")),
+  attempted: z.preprocess((val) => Number(val), z.number().int().nonnegative("Attempted must be a non-negative integer")),
+  correct: z.preprocess((val) => Number(val), z.number().int().nonnegative("Correct must be a non-negative integer")),
+  negativeMarking: z.boolean().default(true),
+  source: z.string().min(1, "Source is required"),
+  difficulty: z.enum(['Easy', 'Medium', 'Hard']).default('Medium'),
+  mistakeTags: z.array(z.string()).default([]),
+  goodTags: z.array(z.string()).default([]),
+  notes: z.string().trim().default(''),
+  vocab: z.array(VocabItemSchema).default([]),
+  flagged: z.boolean().default(false),
+  sessionId: z.string().uuid().optional(),
+  sessionSeq: z.number().int().nonnegative().optional(),
+}).refine((data) => data.correct <= data.attempted, {
+  message: "Correct answers cannot exceed attempted questions",
+  path: ["correct"],
+});
+
+export const GoalWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  text: z.string().trim().min(1, "Goal description is required"),
+  section: z.enum(['VARC', 'LRDI', 'QA']),
+  targetHours: z.preprocess((val) => Number(val), z.number().positive("Target hours must be positive")),
+  deadline: z.string().min(1, "Deadline date is required"),
+});
+
+export const TodoWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  text: z.string().trim().min(1, "Todo description is required"),
+  dueDate: z.string().min(1, "Due date is required"),
+  done: z.boolean().default(false),
+  createdAt: z.string().optional(),
+});
+
+export const ReminderWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  text: z.string().trim().min(1, "Reminder text is required"),
+  date: z.string().min(1, "Date is required"),
+  dismissed: z.boolean().default(false),
+});
+
+export const MockTestSectionSchema = z.object({
+  attempted: z.preprocess((val) => Number(val), z.number().int().nonnegative("Attempted must be a non-negative integer")),
+  correct: z.preprocess((val) => Number(val), z.number().int().nonnegative("Correct must be a non-negative integer")),
+  timeTaken: z.preprocess((val) => Number(val), z.number().positive("Time taken must be positive")),
+}).refine((data) => data.correct <= data.attempted, {
+  message: "Correct answers cannot exceed attempted questions",
+  path: ["correct"],
+});
+
+export const MockTestWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  overallScore: z.preprocess((val) => Number(val), z.number("Overall score must be a number")),
+  overallPercentile: z.preprocess((val) => Number(val), z.number().min(0).max(100, "Percentile must be between 0 and 100")),
+  source: z.string().min(1, "Source is required"),
+  label: z.string().trim().min(1, "Mock label is required"),
+  date: z.string().min(1, "Date is required"),
+  sections: z.object({
+    VARC: MockTestSectionSchema,
+    LRDI: MockTestSectionSchema,
+    QA: MockTestSectionSchema,
+  }),
+  notes: z.string().trim().default(''),
+  flagged: z.boolean().default(false),
+});
+
+export const AeonArticleWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  title: z.string().trim().min(1, "Title is required"),
+  topic: z.string().trim().default('General'),
+  summary: z.string().trim().min(1, "Summary is required"),
+  difficulty: z.enum(['Easy', 'Medium', 'Hard']).default('Medium'),
+  vocab: z.array(VocabItemSchema).default([]),
+  link: z.string().trim().default(''),
+  timeTaken: z.preprocess((val) => Number(val), z.number().int().nonnegative().default(0)),
+  wordCount: z.preprocess((val) => Number(val), z.number().int().nonnegative().default(0)),
+  readingSpeed: z.preprocess((val) => Number(val), z.number().int().nonnegative().default(0)),
+  content: z.string().trim().default(''),
+  summaryGrade: z.any().nullable().optional(),
+  quiz: z.any().nullable().optional(),
+  quizHighScore: z.preprocess((val) => Number(val), z.number().int().nonnegative().default(0)),
+  vocabMastery: z.record(z.any()).default({}),
+  date: z.string().min(1, "Date is required"),
+});
+
+export const CommentWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  date: z.string().nullable().default(null),
+  text: z.string().trim().min(1, "Comment text cannot be empty"),
+  linkedEntryLabel: z.string().trim().default(''),
+  author: z.enum(['mentor', 'student']),
+  parentId: z.string().nullable().default(null),
+  createdAt: z.string().min(1, "Creation timestamp is required"),
+});
+
+export const TaskWriteSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  text: z.string().trim().min(1, "Task description is required"),
+  section: z.enum(['VARC', 'LRDI', 'QA', 'General']),
+  dueDate: z.string().nullable().default(null),
+  status: z.enum(['pending', 'done']).default('pending'),
+  createdAt: z.string().min(1, "Creation timestamp is required"),
+  completedAt: z.string().nullable().default(null),
+});
+
+// Helper validation functions
+export function validateWrite(schema, data) {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    const errorMsg = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+    throw new Error(`Validation failed: ${errorMsg}`);
+  }
+  return result.data;
+}
