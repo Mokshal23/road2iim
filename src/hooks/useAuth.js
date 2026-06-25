@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, firebaseConfigured } from '../firebase';
 
 export function useAuth() {
@@ -20,6 +20,10 @@ export function useAuth() {
 
 export async function login(email, password) {
   await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function signUp(email, password) {
+  await createUserWithEmailAndPassword(auth, email, password);
 }
 
 export async function logout() {

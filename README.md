@@ -122,8 +122,10 @@ npm run dev
 
 ## What's new in v6 (Enterprise SaaS Readiness)
 
+- **🔐 Self-Signup & Direct User Registration**: Added a toggle link on the login screen to allow your friends to register their own accounts directly from the browser.
+- **🎓 Interactive Onboarding Walkthrough Center**: Built a beautiful tabbed guide right at the top of the dashboard. It explains core metrics (Accuracy, Speed/MPM, CAT scoring rules), key tracker features (Streak Heatmap, Mock test analyzer, Vocab bank, Fatigue sequence), and walks them through setting up their free Gemini API key.
+- **⚡ Zustand High-Performance State Cache & Index-Free Queries**: Consolidated collections into a centralized Zustand global store. Refactored queries to sort snapshots client-side in JavaScript, removing the need for manual composite indexes in the Firebase Console (preventing "missing index" crashes for your friends).
 - **👥 Scoped Multi-Tenant Infrastructure & Role Management**: Built scoped tenant paths supporting distinct roles (`student` vs `mentor`). New accounts are greeted with a Role Selection modal to configure access. Mentors can dynamically link and transition between multiple student profiles using a dropdown.
-- **⚡ Zustand High-Performance State Cache**: Consolidated individual real-time listener setups into a centralized global store (`src/store/useAppStore.js`) built with **Zustand**. This drastically reduces Firestore read volumes and prevents redundant component re-renders.
 - **🔌 Offline IndexedDB Persistence**: Overhauled `src/firebase.js` to run Firestore with IndexedDB caching (`persistentLocalCache` and `persistentMultipleTabManager`), ensuring offline functionality across multiple browser tabs.
 - **🛡️ Secure Scoped Firestore Rules**: Modified security rules to restrict reading and writing only to document owners or authenticated mentors who are explicitly linked to the student via `exists` path checks.
 - **🧼 Note Sanitization (DOMPurify)**: Enforced client-side input sanitization via `DOMPurify` to clean notes and comments before committing them to Firestore.

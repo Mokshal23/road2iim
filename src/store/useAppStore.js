@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { collection, onSnapshot, query, where, orderBy, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc } from 'firebase/firestore';
 import { db, firebaseConfigured } from '../firebase';
 
 export const useAppStore = create((set, get) => {
@@ -84,15 +84,23 @@ export const useAppStore = create((set, get) => {
         loading: { ...state.loading, [colName]: true },
       }));
 
-      let q = query(collection(db, colName), where('studentId', '==', studentId));
-      if (options.orderByField) {
-        q = query(q, orderBy(options.orderByField, options.orderByDirection || 'desc'));
-      }
+      const q = query(collection(db, colName), where('studentId', '==', studentId));
 
       const unsub = onSnapshot(
         q,
         (snap) => {
-          const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          let docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          if (options.orderByField) {
+            const field = options.orderByField;
+            const direction = options.orderByDirection || 'desc';
+            docs.sort((a, b) => {
+              const valA = a[field] ?? '';
+              const valB = b[field] ?? '';
+              if (valA < valB) return direction === 'asc' ? -1 : 1;
+              if (valA > valB) return direction === 'asc' ? 1 : -1;
+              return 0;
+            });
+          }
           set({ [colName]: docs });
           set((state) => ({
             loading: { ...state.loading, [colName]: false },

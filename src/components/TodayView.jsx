@@ -6,6 +6,7 @@ import SectionBalance from './SectionBalance';
 import PersonalTodos from './PersonalTodos';
 import Reminders from './Reminders';
 import AICoachSummary from './AICoachSummary';
+import OnboardingGuide from './OnboardingGuide';
 import { todayStr, weekRange } from '../utils/dates';
 
 export default function TodayView({
@@ -26,6 +27,7 @@ export default function TodayView({
   return (
     <div className="today-view">
       <AICoachSummary entries={entries} mocks={mocks} articles={aeonArticles} />
+      <OnboardingGuide />
       <div className="today-grid">
         <div className="today-grid__left">
           <ExamCountdown examDate={examDate} confirmed={examConfirmed} targets={targets} entries={entries} readOnly={readOnlyGoals} />
