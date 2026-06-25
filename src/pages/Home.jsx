@@ -20,6 +20,8 @@ import { useTodos, addTodo } from '../hooks/useTodos';
 import { useReminders } from '../hooks/useReminders';
 import { firebaseConfigured } from '../firebase';
 import { todayStr, shiftWeek } from '../utils/dates';
+import { useAuth } from '../hooks/useAuth';
+import { useAppStore } from '../store/useAppStore';
 
 const TABS = [
   { key: 'today', label: 'Today' },
@@ -35,16 +37,26 @@ export default function Home() {
   const [dashboardSection, setDashboardSection] = useState('VARC');
   const [quickMode, setQuickMode] = useState(false);
 
-  const { entries, loading, error } = useEntries();
-  const { goals } = useGoals();
-  const { comments } = useComments();
-  const { targets } = useDailyTargets();
-  const { examDate, confirmed } = useExamDate();
-  const { articles } = useAeonArticles();
-  const { mocks } = useMockTests();
-  const { tasks } = useTasks();
-  const { todos, loading: todosLoading } = useTodos();
-  const { reminders } = useReminders();
+  const { user } = useAuth();
+  const studentId = useAppStore((state) => state.studentId);
+  const setStudentId = useAppStore((state) => state.setStudentId);
+
+  useEffect(() => {
+    if (user?.uid) {
+      setStudentId(user.uid);
+    }
+  }, [user, setStudentId]);
+
+  const { entries, loading } = useEntries(studentId);
+  const { goals } = useGoals(studentId);
+  const { comments } = useComments(studentId);
+  const { targets } = useDailyTargets(studentId);
+  const { examDate, confirmed } = useExamDate(studentId);
+  const { articles } = useAeonArticles(studentId);
+  const { mocks } = useMockTests(studentId);
+  const { tasks } = useTasks(studentId);
+  const { todos, loading: todosLoading } = useTodos(studentId);
+  const { reminders } = useReminders(studentId);
 
   useEffect(() => {
     if (loading || todosLoading || entries.length === 0) return;
@@ -98,7 +110,6 @@ export default function Home() {
         ))}
       </div>
 
-      {error && <div className="status status--error">{error}</div>}
       {loading ? (
         <p className="empty">Loading your data…</p>
       ) : tab === 'today' ? (

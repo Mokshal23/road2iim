@@ -1,55 +1,47 @@
-import { useEffect, useState } from 'react';
-import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
-} from 'firebase/firestore';
-import { db, firebaseConfigured } from '../firebase';
+import { useEffect } from 'react';
+import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { computeStats } from '../utils/calc';
+import { useAppStore } from '../store/useAppStore';
+import DOMPurify from 'dompurify';
 
 const COLLECTION = 'mockTests';
 const SECTION_KEYS = ['VARC', 'LRDI', 'QA'];
 
-export function useMockTests() {
-  const [mocks, setMocks] = useState([]);
-  const [loading, setLoading] = useState(firebaseConfigured);
-  const [error, setError] = useState(null);
+export function useMockTests(studentId) {
+  const mocks = useAppStore((state) => state.mockTests);
+  const loading = useAppStore((state) => state.loading.mockTests);
+  const bindCollection = useAppStore((state) => state.bindCollection);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
-    const q = query(collection(db, COLLECTION), orderBy('date', 'desc'));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setMocks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
-    return unsub;
-  }, []);
+    if (studentId) {
+      bindCollection(COLLECTION, studentId, { orderByField: 'date', orderByDirection: 'desc' });
+    }
+  }, [studentId, bindCollection]);
 
-  return { mocks, loading, error };
+  return { mocks, loading };
 }
 
-// sections: { VARC: {attempted, correct, timeTaken}, LRDI: {...}, QA: {...} }
 export async function addMockTest({ date, source, label, overallScore, overallPercentile, notes, sections }) {
+  const studentId = useAppStore.getState().studentId;
+  if (!studentId) throw new Error('No active student ID in store.');
+
   const computedSections = {};
   for (const key of SECTION_KEYS) {
     const s = sections[key] || { attempted: 0, correct: 0, timeTaken: 0 };
     computedSections[key] = computeStats({ ...s, negativeMarking: true });
   }
+
   await addDoc(collection(db, COLLECTION), {
+    studentId,
     date,
-    source,
-    label: label || '',
+    source: DOMPurify.sanitize(source || ''),
+    label: DOMPurify.sanitize(label || ''),
     overallScore: Number(overallScore) || 0,
     overallPercentile: Number(overallPercentile) || 0,
-    notes: notes || '',
+    notes: DOMPurify.sanitize(notes || ''),
     sections: computedSections,
-    createdAt: serverTimestamp(),
+    createdAt: new Date().toISOString(),
   });
 }
 
@@ -57,7 +49,6 @@ export async function deleteMockTest(id) {
   await deleteDoc(doc(db, COLLECTION, id));
 }
 
-// Edits a mock in place, recomputing sectional stats from the edited inputs.
 export async function updateMockTest(id, { date, source, label, overallScore, overallPercentile, notes, sections }) {
   const computedSections = {};
   for (const key of SECTION_KEYS) {
@@ -65,16 +56,16 @@ export async function updateMockTest(id, { date, source, label, overallScore, ov
     computedSections[key] = computeStats({ ...s, negativeMarking: true });
   }
   await updateDoc(doc(db, COLLECTION, id), {
-    date, source, label: label || '',
+    date,
+    source: DOMPurify.sanitize(source || ''),
+    label: DOMPurify.sanitize(label || ''),
     overallScore: Number(overallScore) || 0,
     overallPercentile: Number(overallPercentile) || 0,
-    notes: notes || '',
+    notes: DOMPurify.sanitize(notes || ''),
     sections: computedSections,
   });
 }
 
-// Mentor-side "flag for discussion" toggle. Older mocks without the field
-// are treated as not flagged until toggled for the first time.
 export async function toggleMockFlag(mock) {
   await updateDoc(doc(db, COLLECTION, mock.id), { flagged: !mock.flagged });
 }

@@ -1,35 +1,36 @@
-import { useEffect, useState } from 'react';
-import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
-} from 'firebase/firestore';
-import { db, firebaseConfigured } from '../firebase';
+import { useEffect } from 'react';
+import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAppStore } from '../store/useAppStore';
+import DOMPurify from 'dompurify';
 
 const COLLECTION = 'tasks';
 
-export function useTasks() {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(firebaseConfigured);
+export function useTasks(studentId) {
+  const tasks = useAppStore((state) => state.tasks);
+  const loading = useAppStore((state) => state.loading.tasks);
+  const bindCollection = useAppStore((state) => state.bindCollection);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
-    const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      setTasks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
+    if (studentId) {
+      bindCollection(COLLECTION, studentId, { orderByField: 'createdAt', orderByDirection: 'desc' });
+    }
+  }, [studentId, bindCollection]);
 
   return { tasks, loading };
 }
 
 export async function addTask({ text, section, dueDate }) {
+  const studentId = useAppStore.getState().studentId;
+  if (!studentId) throw new Error('No active student ID in store.');
+
   await addDoc(collection(db, COLLECTION), {
-    text,
+    studentId,
+    text: DOMPurify.sanitize(text || ''),
     section,
     dueDate: dueDate || null,
     status: 'pending',
-    createdAt: serverTimestamp(),
+    createdAt: new Date().toISOString(),
     completedAt: null,
   });
 }
@@ -37,7 +38,10 @@ export async function addTask({ text, section, dueDate }) {
 export async function toggleTaskDone(task) {
   const ref = doc(db, COLLECTION, task.id);
   const done = task.status !== 'done';
-  await updateDoc(ref, { status: done ? 'done' : 'pending', completedAt: done ? serverTimestamp() : null });
+  await updateDoc(ref, {
+    status: done ? 'done' : 'pending',
+    completedAt: done ? new Date().toISOString() : null,
+  });
 }
 
 export async function removeTask(id) {

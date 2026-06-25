@@ -1,55 +1,51 @@
-import { useEffect, useState } from 'react';
-import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
-} from 'firebase/firestore';
-import { db, firebaseConfigured } from '../firebase';
+import { useEffect } from 'react';
+import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAppStore } from '../store/useAppStore';
+import DOMPurify from 'dompurify';
 
 const COLLECTION = 'aeonArticles';
 
-export function useAeonArticles() {
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(firebaseConfigured);
-  const [error, setError] = useState(null);
+export function useAeonArticles(studentId) {
+  const articles = useAppStore((state) => state.aeonArticles);
+  const loading = useAppStore((state) => state.loading.aeonArticles);
+  const bindCollection = useAppStore((state) => state.bindCollection);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
-    const q = query(collection(db, COLLECTION), orderBy('date', 'desc'));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setArticles(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
-    return unsub;
-  }, []);
+    if (studentId) {
+      bindCollection(COLLECTION, studentId, { orderByField: 'date', orderByDirection: 'desc' });
+    }
+  }, [studentId, bindCollection]);
 
-  return { articles, loading, error };
+  return { articles, loading };
 }
 
 export async function addAeonArticle(article) {
+  const studentId = useAppStore.getState().studentId;
+  if (!studentId) throw new Error('No active student ID in store.');
+
   await addDoc(collection(db, COLLECTION), {
+    studentId,
     date: article.date,
-    title: article.title,
-    topic: article.topic || 'General',
-    summary: article.summary || '',
+    title: DOMPurify.sanitize(article.title || ''),
+    topic: DOMPurify.sanitize(article.topic || 'General'),
+    summary: DOMPurify.sanitize(article.summary || ''),
     difficulty: article.difficulty,
-    vocab: (article.vocab || []).filter((v) => v.word.trim()),
-    link: article.link || '',
+    vocab: (article.vocab || []).filter((v) => v.word.trim()).map(v => ({
+      word: DOMPurify.sanitize(v.word),
+      meaning: DOMPurify.sanitize(v.meaning),
+      mastered: Boolean(v.mastered),
+    })),
+    link: DOMPurify.sanitize(article.link || ''),
     timeTaken: Number(article.timeTaken) || 0,
     wordCount: Number(article.wordCount) || 0,
     readingSpeed: (Number(article.wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(article.wordCount) / Number(article.timeTaken)) : 0,
-    content: article.content || '',
+    content: DOMPurify.sanitize(article.content || ''),
     summaryGrade: article.summaryGrade || null,
     quiz: article.quiz || null,
     quizHighScore: article.quizHighScore || 0,
     vocabMastery: article.vocabMastery || {},
-    createdAt: serverTimestamp(),
+    createdAt: new Date().toISOString(),
   });
 }
 
@@ -57,20 +53,23 @@ export async function deleteAeonArticle(id) {
   await deleteDoc(doc(db, COLLECTION, id));
 }
 
-// Edits an article in place. Only the fields passed are changed.
 export async function updateAeonArticle(id, article) {
   await updateDoc(doc(db, COLLECTION, id), {
     date: article.date,
-    title: article.title,
-    topic: article.topic || 'General',
-    summary: article.summary || '',
+    title: DOMPurify.sanitize(article.title || ''),
+    topic: DOMPurify.sanitize(article.topic || 'General'),
+    summary: DOMPurify.sanitize(article.summary || ''),
     difficulty: article.difficulty,
-    vocab: (article.vocab || []).filter((v) => v.word.trim()),
-    link: article.link || '',
+    vocab: (article.vocab || []).filter((v) => v.word.trim()).map(v => ({
+      word: DOMPurify.sanitize(v.word),
+      meaning: DOMPurify.sanitize(v.meaning),
+      mastered: Boolean(v.mastered),
+    })),
+    link: DOMPurify.sanitize(article.link || ''),
     timeTaken: Number(article.timeTaken) || 0,
     wordCount: Number(article.wordCount) || 0,
     readingSpeed: (Number(article.wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(article.wordCount) / Number(article.timeTaken)) : 0,
-    content: article.content || '',
+    content: DOMPurify.sanitize(article.content || ''),
   });
 }
 

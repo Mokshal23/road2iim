@@ -119,6 +119,18 @@ npm install
 cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
+
+## What's new in v6 (Enterprise SaaS Readiness)
+
+- **👥 Scoped Multi-Tenant Infrastructure & Role Management**: Built scoped tenant paths supporting distinct roles (`student` vs `mentor`). New accounts are greeted with a Role Selection modal to configure access. Mentors can dynamically link and transition between multiple student profiles using a dropdown.
+- **⚡ Zustand High-Performance State Cache**: Consolidated individual real-time listener setups into a centralized global store (`src/store/useAppStore.js`) built with **Zustand**. This drastically reduces Firestore read volumes and prevents redundant component re-renders.
+- **🔌 Offline IndexedDB Persistence**: Overhauled `src/firebase.js` to run Firestore with IndexedDB caching (`persistentLocalCache` and `persistentMultipleTabManager`), ensuring offline functionality across multiple browser tabs.
+- **🛡️ Secure Scoped Firestore Rules**: Modified security rules to restrict reading and writing only to document owners or authenticated mentors who are explicitly linked to the student via `exists` path checks.
+- **🧼 Note Sanitization (DOMPurify)**: Enforced client-side input sanitization via `DOMPurify` to clean notes and comments before committing them to Firestore.
+- **🩹 Zod Validation & Self-Healing AI Outputs**: Replaced fragile JSON parsing with strict `Zod` schemas in `src/utils/schemas.js` for quizzes, screenshots, and logs. Includes auto-recovery defaults so rate limits or formatting hiccups don't break the UI.
+- **⚙️ Route-Based Code-Splitting**: Implemented React `lazy()` routing for `Home` and `Mentor` pages, decreasing the initial page bundle sizes and speeding up initial application loads.
+- **🧪 Local Testing Suite**: Set up a local unit testing framework using **Vitest** to run scoring and aggregation unit tests (`npm test`), securing regression-free math calculations.
+
 ## What's new in v5 (High Availability & Enhanced Quizzes)
 
 - **⚙️ Multi-Model API Failover Sequence**: Implemented a robust 10-level fallback chain spanning Google Gemini (7 active models), Groq, DeepSeek, and Z.ai (Zhipu) API endpoints. If Gemini hits daily limits or rate limits, the app automatically fails over to Groq or other configured APIs, ensuring zero downtime.

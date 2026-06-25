@@ -1,3 +1,5 @@
+import { safeParseScreenshotJSON, safeParseGradingJSON, safeParseQuizJSON } from './schemas';
+
 export function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -306,20 +308,8 @@ Assume a default high accuracy (100% or close) as a baseline:
 Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON string.`;
 
   const text = await callWithFallbackVision(prompt, base64Image, 60000);
-  
-  try {
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start === -1 || end === -1 || end < start) {
-      throw new Error('No valid JSON structure found in fallback response');
-    }
-    const jsonStr = text.substring(start, end + 1);
-    const rawParsed = JSON.parse(jsonStr);
-    return sanitizeParsedDetails(rawParsed);
-  } catch (err) {
-    console.warn('Raw text parsing failed:', text);
-    throw new Error('Failed to parse response JSON from AI models', { cause: err });
-  }
+  const parsed = safeParseScreenshotJSON(text);
+  return sanitizeParsedDetails(parsed);
 }
 
 export async function defineWordWithGemini(word) {
@@ -430,12 +420,7 @@ Return ONLY a raw JSON object matching this schema. No markdown block tags (like
 }`;
 
   const text = await callWithFallbackText(prompt, true, 60000);
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error('No valid JSON found in AI grading response');
-  }
-  return JSON.parse(text.substring(start, end + 1));
+  return safeParseGradingJSON(text);
 }
 
 export async function generateAeonQuizWithGemini(articleTitle, articleLink) {
@@ -481,12 +466,7 @@ If you cannot browse or access the link, generate a custom high-quality CAT RC p
 Return ONLY a raw JSON array matching the schema. No markdown block tags (like \`\`\`json).`;
 
   const text = await callWithFallbackText(prompt, true, 60000);
-  const start = text.indexOf('[');
-  const end = text.lastIndexOf(']');
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error('No valid JSON array found in AI quiz response');
-  }
-  return JSON.parse(text.substring(start, end + 1));
+  return safeParseQuizJSON(text);
 }
 
 

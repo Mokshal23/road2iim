@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 // All values come from environment variables — see .env.example.
@@ -21,5 +21,12 @@ const app = firebaseConfigured
   ? (getApps()[0] || initializeApp(firebaseConfig))
   : null;
 
-export const db = firebaseConfigured ? getFirestore(app) : null;
+export const db = firebaseConfigured
+  ? initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    })
+  : null;
+
 export const auth = firebaseConfigured ? getAuth(app) : null;

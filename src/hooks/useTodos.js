@@ -1,43 +1,35 @@
-import { useEffect, useState } from 'react';
-import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
-} from 'firebase/firestore';
-import { db, firebaseConfigured } from '../firebase';
+import { useEffect } from 'react';
+import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAppStore } from '../store/useAppStore';
+import DOMPurify from 'dompurify';
 
 const COLLECTION = 'todos';
 
-export function useTodos() {
-  const [todos, setTodos] = useState([]);
-  const [loading, setLoading] = useState(firebaseConfigured);
-  const [error, setError] = useState(null);
+export function useTodos(studentId) {
+  const todos = useAppStore((state) => state.todos);
+  const loading = useAppStore((state) => state.loading.todos);
+  const bindCollection = useAppStore((state) => state.bindCollection);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
-    const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setTodos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
-    return unsub;
-  }, []);
+    if (studentId) {
+      bindCollection(COLLECTION, studentId, { orderByField: 'dueDate', orderByDirection: 'asc' });
+    }
+  }, [studentId, bindCollection]);
 
-  return { todos, loading, error };
+  return { todos, loading };
 }
 
 export async function addTodo({ text, dueDate }) {
+  const studentId = useAppStore.getState().studentId;
+  if (!studentId) throw new Error('No active student ID in store.');
+
   await addDoc(collection(db, COLLECTION), {
-    text,
+    studentId,
+    text: DOMPurify.sanitize(text || ''),
     dueDate: dueDate || '',
     done: false,
-    createdAt: serverTimestamp(),
+    createdAt: new Date().toISOString(),
   });
 }
 

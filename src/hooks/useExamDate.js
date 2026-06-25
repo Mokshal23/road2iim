@@ -1,35 +1,35 @@
-import { useEffect, useState } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db, firebaseConfigured } from '../firebase';
+import { useEffect } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAppStore } from '../store/useAppStore';
 
-const DOC_PATH = ['settings', 'examDate'];
-// CAT 2026 is widely expected on 29 Nov 2026 (IIM Indore's typical late-November
-// slot) but this is NOT yet officially confirmed — the notification usually
-// drops mid-to-late July. Editable in-app the moment it's confirmed or changes.
 export const DEFAULT_EXAM_DATE = '2026-11-29';
 
-export function useExamDate() {
-  const [examDate, setExamDate] = useState(DEFAULT_EXAM_DATE);
-  const [confirmed, setConfirmed] = useState(false);
-  const [loading, setLoading] = useState(firebaseConfigured);
+export function useExamDate(studentId) {
+  const examDate = useAppStore((state) => state.examDate);
+  const confirmed = useAppStore((state) => state.examConfirmed);
+  const loading = useAppStore((state) => state.loading.examDate);
+  const bindDocument = useAppStore((state) => state.bindDocument);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
-    const ref = doc(db, ...DOC_PATH);
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setExamDate(snap.data().date || DEFAULT_EXAM_DATE);
-        setConfirmed(Boolean(snap.data().confirmed));
-      }
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
+    if (studentId) {
+      bindDocument('examDate', studentId);
+    }
+  }, [studentId, bindDocument]);
 
-  return { examDate, confirmed, loading };
+  const displayDate = examDate || DEFAULT_EXAM_DATE;
+
+  return { examDate: displayDate, confirmed, loading };
 }
 
 export async function saveExamDate(date, confirmed) {
-  const ref = doc(db, ...DOC_PATH);
-  await setDoc(ref, { date, confirmed: Boolean(confirmed) }, { merge: true });
+  const studentId = useAppStore.getState().studentId;
+  if (!studentId) throw new Error('No active student ID in store.');
+
+  const ref = doc(db, 'examDate', studentId);
+  await setDoc(ref, {
+    date,
+    confirmed: Boolean(confirmed),
+    studentId,
+  }, { merge: true });
 }

@@ -1,28 +1,33 @@
-import { useEffect, useState } from 'react';
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db, firebaseConfigured } from '../firebase';
+import { useEffect } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { DEFAULT_DAILY_TARGETS } from '../constants';
+import { useAppStore } from '../store/useAppStore';
 
-const DOC_PATH = ['settings', 'dailyTargets'];
-
-export function useDailyTargets() {
-  const [targets, setTargets] = useState(DEFAULT_DAILY_TARGETS);
-  const [loading, setLoading] = useState(firebaseConfigured);
+export function useDailyTargets(studentId) {
+  const storeTargets = useAppStore((state) => state.dailyTargets);
+  const loading = useAppStore((state) => state.loading.dailyTargets);
+  const bindDocument = useAppStore((state) => state.bindDocument);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
-    const ref = doc(db, ...DOC_PATH);
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) setTargets({ ...DEFAULT_DAILY_TARGETS, ...snap.data() });
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
+    if (studentId) {
+      bindDocument('dailyTargets', studentId);
+    }
+  }, [studentId, bindDocument]);
+
+  const targets = storeTargets ? { ...DEFAULT_DAILY_TARGETS, ...storeTargets } : DEFAULT_DAILY_TARGETS;
 
   return { targets, loading };
 }
 
 export async function saveDailyTargets(targets) {
-  const ref = doc(db, ...DOC_PATH);
-  await setDoc(ref, { ...targets, updatedAt: serverTimestamp() }, { merge: true });
+  const studentId = useAppStore.getState().studentId;
+  if (!studentId) throw new Error('No active student ID in store.');
+
+  const ref = doc(db, 'dailyTargets', studentId);
+  await setDoc(ref, {
+    ...targets,
+    studentId,
+    updatedAt: new Date().toISOString(),
+  }, { merge: true });
 }

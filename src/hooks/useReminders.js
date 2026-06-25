@@ -1,43 +1,35 @@
-import { useEffect, useState } from 'react';
-import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
-} from 'firebase/firestore';
-import { db, firebaseConfigured } from '../firebase';
+import { useEffect } from 'react';
+import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAppStore } from '../store/useAppStore';
+import DOMPurify from 'dompurify';
 
 const COLLECTION = 'reminders';
 
-export function useReminders() {
-  const [reminders, setReminders] = useState([]);
-  const [loading, setLoading] = useState(firebaseConfigured);
-  const [error, setError] = useState(null);
+export function useReminders(studentId) {
+  const reminders = useAppStore((state) => state.reminders);
+  const loading = useAppStore((state) => state.loading.reminders);
+  const bindCollection = useAppStore((state) => state.bindCollection);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
-    const q = query(collection(db, COLLECTION), orderBy('date', 'asc'));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setReminders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
-    return unsub;
-  }, []);
+    if (studentId) {
+      bindCollection(COLLECTION, studentId, { orderByField: 'date', orderByDirection: 'asc' });
+    }
+  }, [studentId, bindCollection]);
 
-  return { reminders, loading, error };
+  return { reminders, loading };
 }
 
 export async function addReminder({ text, date }) {
+  const studentId = useAppStore.getState().studentId;
+  if (!studentId) throw new Error('No active student ID in store.');
+
   await addDoc(collection(db, COLLECTION), {
-    text,
+    studentId,
+    text: DOMPurify.sanitize(text || ''),
     date,
     dismissed: false,
-    createdAt: serverTimestamp(),
+    createdAt: new Date().toISOString(),
   });
 }
 

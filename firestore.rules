@@ -1,51 +1,69 @@
 rules_version = '2';
-
-// Locked down: only someone signed in with one of your two Firebase Auth
-// accounts (you + mentor) can read or write. Random visitors who find the
-// URL can no longer see or touch your data.
-//
-// IMPORTANT ROLLOUT ORDER — read before publishing this:
-//   1. Firebase Console → Authentication → Sign-in method → enable Email/Password.
-//   2. Authentication → Users → Add user, twice (one for you, one for your mentor).
-//   3. Deploy the updated app code (it now has a login screen).
-//   4. Only then publish these rules. Publishing before steps 1-3 just means
-//      the app is broken until accounts exist — it does NOT touch any of
-//      your existing documents either way.
-//
-// Want stricter, per-person rules later (e.g. only the mentor account can
-// write to `tasks`)? Replace `request.auth != null` with a check against
-// the specific UID, e.g.:
-//   allow write: if request.auth.uid == 'MENTOR_UID_HERE';
-// You can find each account's UID in Authentication → Users after creating them.
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /entries/{entryId} {
-      allow read, write: if request.auth != null;
+    
+    // Helper function to check if the user is the owner of the document
+    function isOwner(studentId) {
+      return request.auth != null && request.auth.uid == studentId;
     }
-    match /goals/{goalId} {
-      allow read, write: if request.auth != null;
+
+    // Helper function to check if the user is a mentor connected to this student
+    function isConnectedMentor(studentId) {
+      return request.auth != null && exists(/databases/$(database)/documents/mentorships/$(request.auth.uid)_$(studentId));
     }
-    match /comments/{commentId} {
-      allow read, write: if request.auth != null;
+
+    // Scoped study collections
+    match /entries/{id} {
+      allow read, write: if isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId);
+      allow create: if isOwner(request.resource.data.studentId);
     }
-    match /settings/{settingId} {
-      allow read, write: if request.auth != null;
+    match /goals/{id} {
+      allow read, write: if isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId);
+      allow create: if isOwner(request.resource.data.studentId);
     }
-    match /aeonArticles/{articleId} {
-      allow read, write: if request.auth != null;
+    match /comments/{id} {
+      allow read, write: if isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId);
+      allow create: if isOwner(request.resource.data.studentId) || isConnectedMentor(request.resource.data.studentId);
     }
-    match /mockTests/{mockId} {
-      allow read, write: if request.auth != null;
+    match /aeonArticles/{id} {
+      allow read, write: if isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId);
+      allow create: if isOwner(request.resource.data.studentId);
     }
-    match /tasks/{taskId} {
-      allow read, write: if request.auth != null;
+    match /mockTests/{id} {
+      allow read, write: if isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId);
+      allow create: if isOwner(request.resource.data.studentId);
     }
-    match /todos/{todoId} {
-      allow read, write: if request.auth != null;
+    match /tasks/{id} {
+      allow read, write: if isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId);
+      allow create: if isOwner(request.resource.data.studentId) || isConnectedMentor(request.resource.data.studentId);
     }
-    match /reminders/{reminderId} {
-      allow read, write: if request.auth != null;
+    match /todos/{id} {
+      allow read, write: if isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId);
+      allow create: if isOwner(request.resource.data.studentId);
+    }
+    match /reminders/{id} {
+      allow read, write: if isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId);
+      allow create: if isOwner(request.resource.data.studentId);
+    }
+
+    // Scoped settings documents (where document ID is studentId)
+    match /dailyTargets/{studentId} {
+      allow read, write: if isOwner(studentId) || isConnectedMentor(studentId);
+    }
+    match /examDate/{studentId} {
+      allow read, write: if isOwner(studentId) || isConnectedMentor(studentId);
+    }
+
+    // User profiles collection
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Mentorship connections
+    match /mentorships/{connId} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.mentorId || request.auth.uid == resource.data.studentId);
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.mentorId;
     }
   }
 }
