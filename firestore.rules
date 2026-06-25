@@ -9,7 +9,7 @@ service cloud.firestore {
 
     // Helper function to check if the user is a mentor connected to this student
     function isConnectedMentor(studentId) {
-      return request.auth != null && exists(/databases/$(database)/documents/mentorships/$(request.auth.uid)_$(studentId));
+      return request.auth != null && exists(/databases/$(database)/documents/mentorships/$(request.auth.uid + '_' + studentId));
     }
 
     // Scoped study collections
