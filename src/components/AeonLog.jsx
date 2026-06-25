@@ -619,14 +619,178 @@ function SummaryGradingModal({ article, onClose }) {
   );
 }
 
+function QuestionReviewItem({ q, idx, userAnswer, errorLog, onSaveReflection }) {
+  const isCorrect = userAnswer === q.correctOption;
+  const [category, setCategory] = useState(errorLog?.category || '');
+  const [customNote, setCustomNote] = useState(errorLog?.customNote || '');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (errorLog) {
+      setCategory(errorLog.category || '');
+      setCustomNote(errorLog.customNote || '');
+    } else {
+      setCategory('');
+      setCustomNote('');
+    }
+  }, [errorLog]);
+
+  const handleSave = () => {
+    onSaveReflection(idx, category, customNote);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="card" style={{ padding: '16px', background: 'var(--surface-raised)', marginBottom: '16px', borderLeft: `4px solid ${isCorrect ? 'var(--success)' : 'var(--danger)'}` }}>
+      <h5 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600, lineHeight: 1.4 }}>
+        Question {idx + 1}: {q.question}
+      </h5>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+        {Object.entries(q.options).map(([key, val]) => {
+          const selected = userAnswer === key;
+          const correct = q.correctOption === key;
+          
+          let optBg = 'var(--surface)';
+          let optBorder = '1px solid var(--border)';
+          let optColor = 'var(--text)';
+          
+          if (correct) {
+            optBg = 'rgba(54, 143, 99, 0.12)';
+            optBorder = '1px solid var(--success)';
+            optColor = 'var(--success)';
+          } else if (selected) {
+            optBg = 'rgba(189, 72, 86, 0.12)';
+            optBorder = '1px solid var(--danger)';
+            optColor = 'var(--danger)';
+          }
+
+          return (
+            <div 
+              key={key} 
+              style={{ 
+                padding: '10px 14px', 
+                background: optBg, 
+                border: optBorder, 
+                borderRadius: '8px', 
+                fontSize: '13px', 
+                color: optColor, 
+                display: 'flex', 
+                gap: '10px',
+                lineHeight: 1.4
+              }}
+            >
+              <strong style={{ opacity: 0.8, fontFamily: 'var(--font-mono)' }}>{key}.</strong>
+              <span>{val}</span>
+              {correct && <span style={{ marginLeft: 'auto', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', alignSelf: 'center' }}>✓ Correct Option</span>}
+              {!correct && selected && <span style={{ marginLeft: 'auto', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', alignSelf: 'center' }}>✗ Your Choice</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ fontSize: '13px', background: 'var(--bg)', padding: '12px', borderRadius: '8px', marginBottom: '16px', lineHeight: 1.5 }}>
+        <p style={{ margin: '0 0 6px 0', color: 'var(--success)', fontWeight: 600 }}>💡 Correct Option Explanation:</p>
+        <p style={{ margin: 0, color: 'var(--text)' }}>{q.explanation}</p>
+        
+        {userAnswer !== q.correctOption && q.traps && q.traps[userAnswer] && (
+          <div style={{ marginTop: '10px', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+            <p style={{ margin: '0 0 6px 0', color: 'var(--danger)', fontWeight: 600 }}>⚠ Trap Explanation (Option {userAnswer}):</p>
+            <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--text-secondary)' }}>{q.traps[userAnswer]}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Self-identified error log */}
+      <div style={{ background: 'var(--surface)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border)', marginTop: '12px' }}>
+        <h6 style={{ margin: '0 0 10px 0', fontSize: '12px', fontWeight: 700, color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          🧠 Self-Identified Error Analysis
+        </h6>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div>
+            <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: 500 }}>Error Category / Reflection Type:</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                background: 'var(--surface-raised)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                color: 'var(--text)',
+                fontSize: '12.5px'
+              }}
+            >
+              <option value="">-- Select Reflection / Error Reason --</option>
+              <option value="Correct - Clear elimination of traps">✓ Correct - Clear elimination of traps</option>
+              <option value="Correct - Lucky guess">✓ Correct - Lucky guess</option>
+              <option value="Correct - Direct reference from passage">✓ Correct - Direct reference from passage</option>
+              <option value="Error: Out of Scope (OOS) / Extrapolated">✗ Error: Out of Scope (OOS) / Extrapolated</option>
+              <option value="Error: True but Irrelevant (TBI)">✗ Error: True but Irrelevant (TBI)</option>
+              <option value="Error: Extreme Language (all, only, never)">✗ Error: Extreme Language (all, only, never)</option>
+              <option value="Error: Direct Distortion of Text">✗ Error: Direct Distortion of Text</option>
+              <option value="Error: Too Broad / Too Narrow">✗ Error: Too Broad / Too Narrow</option>
+              <option value="Error: Misinterpreted Tone / Attitude">✗ Error: Misinterpreted Tone / Attitude</option>
+              <option value="Error: Silly Reading Slip (missed NOT, EXCEPT)">✗ Error: Silly Reading Slip (missed NOT, EXCEPT)</option>
+              <option value="Error: Rushed under Time Pressure">✗ Error: Rushed under Time Pressure</option>
+              <option value="Error: Incorrect Elimination of correct answer">✗ Error: Incorrect Elimination of correct answer</option>
+              <option value="Error: Other / Custom">✗ Error: Other / Custom</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: 500 }}>Custom Notes & Remedial Plan:</label>
+            <textarea
+              value={customNote}
+              onChange={(e) => setCustomNote(e.target.value)}
+              placeholder="Why did you choose this option? What specific clue did you miss, and how will you avoid this error in the future?"
+              rows={2}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                background: 'var(--surface-raised)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                color: 'var(--text)',
+                fontSize: '12.5px',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                lineHeight: 1.4
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+            {saved && <span style={{ fontSize: '11.5px', color: 'var(--success)', fontWeight: 600 }}>✓ Saved Reflection!</span>}
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              onClick={handleSave}
+              style={{ padding: '6px 14px', fontSize: '11.5px', borderRadius: '6px' }}
+            >
+              Save Reflection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CATRCQuizModal({ article, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [quiz, setQuiz] = useState(article.quiz || null);
   const [started, setStarted] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [userAnswers, setUserAnswers] = useState({});
-  const [quizScore, setQuizScore] = useState(0); 
+  const [userAnswers, setUserAnswers] = useState(article.quizUserAnswers || {});
+  const [quizScore, setQuizScore] = useState(article.quizScore || 0); 
+  const [errorLogs, setErrorLogs] = useState(article.quizErrorLogs || {});
+  const [activeTab, setActiveTab] = useState('summary'); // 'summary' or 'review'
+  const [tempSelected, setTempSelected] = useState('');
 
   async function generateQuiz() {
     const apiKey = localStorage.getItem('gemini_api_key');
@@ -639,11 +803,19 @@ function CATRCQuizModal({ article, onClose }) {
     try {
       const result = await generateAeonQuizWithGemini(article.title, article.link, apiKey);
       setQuiz(result);
-      await updateAeonArticleFields(article.id, { quiz: result });
+      await updateAeonArticleFields(article.id, { 
+        quiz: result,
+        quizUserAnswers: null,
+        quizScore: 0,
+        quizHighScore: article.quizHighScore || 0,
+        quizErrorLogs: null
+      });
       setStarted(false);
       setCurrentIdx(0);
       setUserAnswers({});
       setQuizScore(0);
+      setErrorLogs({});
+      setTempSelected('');
     } catch (err) {
       console.error(err);
       setError(err.message || 'Failed to generate quiz.');
@@ -652,41 +824,75 @@ function CATRCQuizModal({ article, onClose }) {
     }
   }
 
-  async function handleOptionSelect(option) {
-    if (userAnswers[currentIdx] !== undefined) return; 
-    
-    const correct = quiz[currentIdx].correctOption;
-    let scoreDiff = -1;
-    if (option === correct) {
-      scoreDiff = 3;
-    }
-    
-    const newAnswers = { ...userAnswers, [currentIdx]: option };
-    setUserAnswers(newAnswers);
-    setQuizScore(prev => prev + scoreDiff);
-
-    if (currentIdx === quiz.length - 1) {
-      const finalScore = quizScore + scoreDiff;
-      const currentHighScore = article.quizHighScore || 0;
-      if (finalScore > currentHighScore) {
-        await updateAeonArticleFields(article.id, { quizHighScore: finalScore });
-      }
-    }
+  function handleOptionSelect(option) {
+    setTempSelected(option);
   }
 
-  function handleNext() {
+  async function handleNext() {
+    if (!tempSelected) return;
+
+    const newAnswers = { ...userAnswers, [currentIdx]: tempSelected };
+    setUserAnswers(newAnswers);
+    setTempSelected('');
+
     if (currentIdx < quiz.length - 1) {
       setCurrentIdx(prev => prev + 1);
     } else {
-      setStarted(false); 
+      let finalScore = 0;
+      quiz.forEach((q, idx) => {
+        const selected = newAnswers[idx];
+        if (selected === q.correctOption) {
+          finalScore += 3;
+        } else {
+          finalScore -= 1;
+        }
+      });
+
+      setQuizScore(finalScore);
+      setStarted(false);
+
+      const currentHighScore = article.quizHighScore || 0;
+      const patch = {
+        quizUserAnswers: newAnswers,
+        quizScore: finalScore
+      };
+      if (finalScore > currentHighScore) {
+        patch.quizHighScore = finalScore;
+      }
+      await updateAeonArticleFields(article.id, patch);
     }
   }
 
-  function handleReset() {
+  async function handleReset() {
     setStarted(true);
     setCurrentIdx(0);
     setUserAnswers({});
     setQuizScore(0);
+    setErrorLogs({});
+    setTempSelected('');
+    await updateAeonArticleFields(article.id, {
+      quizUserAnswers: null,
+      quizScore: 0,
+      quizErrorLogs: null
+    });
+  }
+
+  async function handleSaveReflection(questionIdx, category, customNote) {
+    const updatedLogs = {
+      ...errorLogs,
+      [questionIdx]: {
+        category,
+        customNote,
+        savedAt: new Date().toISOString()
+      }
+    };
+    setErrorLogs(updatedLogs);
+    try {
+      await updateAeonArticleFields(article.id, { quizErrorLogs: updatedLogs });
+    } catch (err) {
+      console.error('Failed to save reflection:', err);
+      alert('Failed to save error log.');
+    }
   }
 
   const isCompleted = quiz && Object.keys(userAnswers).length === quiz.length;
@@ -707,60 +913,130 @@ function CATRCQuizModal({ article, onClose }) {
           <button className="btn btn--primary" onClick={generateQuiz}>Generate CAT RC Quiz</button>
         </div>
       ) : !started ? (
-        <div style={{ textAlign: 'center', padding: '10px 0' }}>
-          <h4 style={{ fontSize: '15px', marginBottom: '12px', fontWeight: 600 }}>CAT Verbal Prep: "{article.title}"</h4>
-          
+        <div style={{ padding: '10px 0' }}>
           {isCompleted ? (
-            <div style={{ margin: '20px 0', padding: '20px', background: 'var(--surface-raised)', borderRadius: '8px' }}>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quiz Completed</p>
-              <h2 style={{ fontSize: '32px', color: quizScore >= 16 ? 'var(--success)' : quizScore >= 8 ? 'var(--amber)' : 'var(--danger)', margin: '0 0 8px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                {quizScore} / {quiz.length * 3} pts
-              </h2>
-              <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.4 }}>
-                {quizScore >= 18 ? '🔥 Elite VARC Accuracy! Excellent grasp of author traps.' : 
-                 quizScore >= 12 ? '👍 Decent performance. Watch out for out-of-scope options.' : 
-                 '⚠ Critical warnings: You fell into multiple verbal traps. Review trap explanations.'}
-              </p>
-              {quizScore > (article.quizHighScore || 0) && (
-                <p style={{ color: 'var(--success)', fontWeight: 600, fontSize: '13px', marginTop: '10px' }}>⭐ New High Score!</p>
+            <div>
+              <div style={{ margin: '0 0 20px 0', padding: '20px', background: 'var(--surface-raised)', borderRadius: '8px', textAlign: 'center' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quiz Completed</p>
+                <h2 style={{ fontSize: '32px', color: quizScore >= 18 ? 'var(--success)' : quizScore >= 8 ? 'var(--amber)' : 'var(--danger)', margin: '0 0 8px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                  {quizScore} / {quiz.length * 3} pts
+                </h2>
+                <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.4 }}>
+                  {quizScore >= 18 ? '🔥 Elite VARC Accuracy! Excellent grasp of author traps.' : 
+                   quizScore >= 12 ? '👍 Decent performance. Watch out for out-of-scope options.' : 
+                   '⚠ Critical warnings: You fell into multiple verbal traps. Review trap explanations.'}
+                </p>
+                {quizScore > (article.quizHighScore || 0) && (
+                  <p style={{ color: 'var(--success)', fontWeight: 600, fontSize: '13px', marginTop: '10px' }}>⭐ New High Score!</p>
+                )}
+              </div>
+
+              {/* Tab Navigation */}
+              <div className="seg" style={{ marginBottom: '16px', display: 'flex', background: 'var(--surface)', borderRadius: '8px', padding: '2px' }}>
+                <button
+                  type="button"
+                  className={`seg__btn ${activeTab === 'summary' ? 'seg__btn--active-neutral' : ''}`}
+                  onClick={() => setActiveTab('summary')}
+                  style={{ flex: 1, padding: '8px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 500 }}
+                >
+                  📊 Summary
+                </button>
+                <button
+                  type="button"
+                  className={`seg__btn ${activeTab === 'review' ? 'seg__btn--active-neutral' : ''}`}
+                  onClick={() => setActiveTab('review')}
+                  style={{ flex: 1, padding: '8px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 500 }}
+                >
+                  📝 Review & Error Log
+                </button>
+              </div>
+
+              {activeTab === 'summary' ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <h4 style={{ fontSize: '14.5px', marginBottom: '12px', fontWeight: 600 }}>CAT Verbal Prep: "{article.title}"</h4>
+                  {article.quizHighScore > 0 && (
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                      Current High Score: <strong>{article.quizHighScore} pts</strong>
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                    <button className="btn btn--primary" onClick={handleReset}>
+                      Retake Quiz
+                    </button>
+                    <button className="btn btn--ghost" onClick={generateQuiz}>
+                      🔄 Regenerate Quiz
+                    </button>
+                    <button className="btn btn--ghost" onClick={onClose}>
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ maxHeight: '420px', overflowY: 'auto', paddingRight: '6px' }}>
+                  {quiz.map((q, idx) => (
+                    <QuestionReviewItem
+                      key={idx}
+                      q={q}
+                      idx={idx}
+                      userAnswer={userAnswers[idx]}
+                      errorLog={errorLogs[idx]}
+                      onSaveReflection={handleSaveReflection}
+                    />
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '16px', marginBottom: '10px' }}>
+                    <button className="btn btn--primary" onClick={() => setActiveTab('summary')}>
+                      Back to Summary
+                    </button>
+                    <button className="btn btn--ghost" onClick={onClose}>
+                      Close
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           ) : (
-            <div style={{ margin: '20px 0', padding: '16px', background: 'var(--surface-raised)', borderRadius: '8px', fontSize: '13px', lineHeight: 1.4 }}>
-              <p style={{ margin: '0 0 6px' }}><strong>8 CAT RC Questions</strong> testing tone, main idea, structure, and inferences.</p>
-              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Scoring: <span style={{ color: 'var(--success)' }}>+3 for correct</span>, <span style={{ color: 'var(--danger)' }}>-1 for wrong</span>.</p>
+            <div style={{ textAlign: 'center', padding: '10px 0' }}>
+              <h4 style={{ fontSize: '15px', marginBottom: '12px', fontWeight: 600 }}>CAT Verbal Prep: "{article.title}"</h4>
+              
+              <div style={{ margin: '20px 0', padding: '16px', background: 'var(--surface-raised)', borderRadius: '8px', fontSize: '13px', lineHeight: 1.4 }}>
+                <p style={{ margin: '0 0 8px' }}><strong>8 CAT RC Questions</strong> testing tone, main idea, structure, and inferences.</p>
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                  Format: <span style={{ color: 'var(--amber)', fontWeight: 500 }}>Test Mode</span> (feedback is delayed until submission).
+                </p>
+                <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)' }}>Scoring: <span style={{ color: 'var(--success)' }}>+3 for correct</span>, <span style={{ color: 'var(--danger)' }}>-1 for wrong</span>.</p>
+              </div>
+
+              {article.quizHighScore > 0 && (
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  Current High Score: <strong>{article.quizHighScore} pts</strong>
+                </p>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <button className="btn btn--primary" onClick={handleReset}>
+                  Start Quiz
+                </button>
+                <button className="btn btn--ghost" onClick={generateQuiz}>
+                  🔄 Regenerate Quiz
+                </button>
+                <button className="btn btn--ghost" onClick={onClose}>
+                  Close
+                </button>
+              </div>
             </div>
           )}
-
-          {article.quizHighScore > 0 && (
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-              Current High Score: <strong>{article.quizHighScore} pts</strong>
-            </p>
-          )}
-
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-            <button className="btn btn--primary" onClick={handleReset}>
-              {isCompleted ? 'Retake Quiz' : 'Start Quiz'}
-            </button>
-            <button className="btn btn--ghost" onClick={generateQuiz}>
-              🔄 Regenerate Quiz
-            </button>
-            <button className="btn btn--ghost" onClick={onClose}>
-              Close
-            </button>
-          </div>
         </div>
       ) : (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
             <span>Question {currentIdx + 1} of {quiz.length}</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: quizScore >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-              Score: {quizScore} pts
+            <span style={{ color: 'var(--amber)', fontWeight: 600 }}>
+              Test Mode Active
             </span>
           </div>
 
-          <div className="quiz-progress-bar">
-            <div className="quiz-progress-fill" style={{ width: `${((currentIdx + 1) / quiz.length) * 100}%` }}></div>
+          <div className="quiz-progress-bar" style={{ height: '6px', background: 'var(--surface-raised)', borderRadius: '3px', overflow: 'hidden', marginBottom: '16px' }}>
+            <div className="quiz-progress-fill" style={{ height: '100%', background: 'var(--blue)', width: `${((currentIdx + 1) / quiz.length) * 100}%`, transition: 'width 0.2s' }}></div>
           </div>
 
           <div className="card" style={{ background: 'var(--bg)', marginBottom: '16px', padding: '14px 16px' }}>
@@ -771,56 +1047,59 @@ function CATRCQuizModal({ article, onClose }) {
 
           <div style={{ marginBottom: '16px' }}>
             {Object.entries(quiz[currentIdx].options).map(([key, text]) => {
-              const selected = userAnswers[currentIdx];
-              const isSelected = selected === key;
-              const isCorrect = quiz[currentIdx].correctOption === key;
-              
-              let optClass = 'quiz-option';
-              if (selected !== undefined) {
-                if (isCorrect) optClass += ' quiz-option--correct';
-                else if (isSelected) optClass += ' quiz-option--wrong';
-              }
+              const selected = tempSelected === key;
 
               return (
                 <button
                   key={key}
-                  className={optClass}
-                  disabled={selected !== undefined}
+                  className={`quiz-option ${selected ? 'quiz-option--selected' : ''}`}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 16px',
+                    background: selected ? 'rgba(74, 117, 199, 0.15)' : 'var(--surface)',
+                    border: selected ? '1px solid var(--blue)' : '1px solid var(--border)',
+                    borderRadius: '8px',
+                    color: selected ? 'var(--blue)' : 'var(--text)',
+                    fontSize: '13.5px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    marginBottom: '8px',
+                    transition: 'all 0.15s ease'
+                  }}
                   onClick={() => handleOptionSelect(key)}
                 >
-                  <span className="quiz-option__label">{key}</span>
+                  <span className="quiz-option__label" style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: selected ? 'var(--blue)' : 'var(--surface-raised)',
+                    color: selected ? '#ffffff' : 'var(--text-secondary)',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    fontFamily: 'var(--font-mono)'
+                  }}>{key}</span>
                   <span>{text}</span>
                 </button>
               );
             })}
           </div>
 
-          {userAnswers[currentIdx] !== undefined && (
-            <div style={{ marginTop: '16px', animation: 'fadeIn 0.2s' }}>
-              {userAnswers[currentIdx] === quiz[currentIdx].correctOption ? (
-                <div className="quiz-correct-explanation">
-                  <strong>✓ Correct!</strong> {quiz[currentIdx].explanation}
-                </div>
-              ) : (
-                <>
-                  <div className="quiz-trap-explanation">
-                    <strong>⚠ Trap Triggered!</strong> You chose Option {userAnswers[currentIdx]}. 
-                    <br />
-                    <span style={{ fontWeight: 500 }}>Trap Reason:</span> {quiz[currentIdx].traps[userAnswers[currentIdx]]}
-                  </div>
-                  <div className="quiz-correct-explanation">
-                    <strong>Correct Option is {quiz[currentIdx].correctOption}:</strong> {quiz[currentIdx].explanation}
-                  </div>
-                </>
-              )}
-              
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                <button className="btn btn--primary" onClick={handleNext}>
-                  {currentIdx === quiz.length - 1 ? 'Finish Quiz' : 'Next Question ➔'}
-                </button>
-              </div>
-            </div>
-          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+            <button 
+              className="btn btn--primary" 
+              onClick={handleNext}
+              disabled={!tempSelected}
+              style={{ opacity: tempSelected ? 1 : 0.6, cursor: tempSelected ? 'pointer' : 'not-allowed' }}
+            >
+              {currentIdx === quiz.length - 1 ? 'Submit & Finish Test ➔' : 'Next Question ➔'}
+            </button>
+          </div>
         </div>
       )}
     </div>

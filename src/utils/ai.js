@@ -447,40 +447,38 @@ Article Link: "${articleLink}"
 Your task:
 1. Retrieve/read the article using the provided link.
 2. Generate exactly 8 multiple-choice questions testing active comprehension.
-3. Keep the questions at CAT difficulty, including common traps.
-4. The questions should cover:
-   - Primary purpose / Central theme.
-   - Tone / Attitude of the author.
-   - Inference-based questions ("Which of the following can be inferred...", "The author's argument assumes...").
-   - Detail-based check or structure organization.
-5. For each question:
-   - 4 options (A, B, C, D) and exactly 1 correctOption.
-   - A detailed "explanation" for why the correct option is right.
-   - A detailed "traps" block showing why each incorrect option is wrong (e.g., "Extreme generalization", "Out of scope", "True but irrelevant").
+3. Keep the questions at CAT level of difficulty, using the authentic language, tone, and structural complexity of actual CAT VARC questions.
+4. Ensure a good variation of question types. The 8 questions should cover:
+   - 2 Central Idea / Primary Purpose / Main Theme questions.
+   - 1 Tone / Attitude / Style of the author question.
+   - 3 Inference / Assumption / Suggestion-based questions (e.g., "Which of the following can be inferred...", "The author's argument assumes which of the following...").
+   - 1 Weaken / Strengthen / Application-based question (e.g., "Which of the following, if true, would most weaken the author's claim that...", "According to the passage, the author's view on X would be supported by...").
+   - 1 Structure / Organization / Function-based question (e.g., "The primary function of the second paragraph is to...", "Which of the following best describes the organization of the passage?").
+5. For each question, construct 4 option choices (A, B, C, D):
+   - Only 1 must be correct, representing a nuanced but indisputably correct interpretation.
+   - The other 3 options must be highly realistic CAT-style traps that feel correct but contain subtle flaws.
+   - Classify and detail the traps in the JSON response using these specific CAT trap tags:
+     * "Out of Scope" (extrapolated ideas not stated in the passage)
+     * "True but Irrelevant" (historically or textually true, but doesn't answer the specific question stem)
+     * "Extreme Language" (uses absolute words like "always", "never", "only", "entirely" when the author was moderate)
+     * "Too Broad / Too Narrow" (captures only a minor detail or goes far beyond the scope of the paragraph)
+     * "Direct Distortion" (takes facts from the passage but twists their causal relationship or context)
+6. For each question:
+   - "question": Question text matching CAT VARC register.
+   - "options": { "A": "...", "B": "...", "C": "...", "D": "..." }
+   - "correctOption": "A" | "B" | "C" | "D"
+   - "explanation": Nuanced, detailed reasoning for why the correct option is the best answer.
+   - "traps": {
+       "A": "Identify the trap type and explain why it is wrong...",
+       "B": "Identify the trap type and explain why it is wrong...",
+       "C": "Identify the trap type and explain why it is wrong...",
+       "D": "Identify the trap type and explain why it is wrong..."
+     } (For the correctOption, the trap description should be "Correct Option - no trap.")
 
 Fallback instructions:
 If you cannot browse or access the link, generate a custom high-quality CAT RC passage of ~500 words on the same topic/title ("${articleTitle}") and generate the 8 questions from that passage! The quiz must not fail.
 
-Return ONLY a raw JSON array matching this schema. No markdown block tags (like \`\`\`json).
-[
-  {
-    "question": "Question text...",
-    "options": {
-      "A": "Option A...",
-      "B": "Option B...",
-      "C": "Option C...",
-      "D": "Option D..."
-    },
-    "correctOption": "A" | "B" | "C" | "D",
-    "explanation": "Why correct...",
-    "traps": {
-      "A": "Trap analysis...",
-      "B": "Trap analysis...",
-      "C": "Trap analysis...",
-      "D": "Trap analysis..."
-    }
-  }
-]`;
+Return ONLY a raw JSON array matching the schema. No markdown block tags (like \`\`\`json).`;
 
   const text = await callWithFallbackText(prompt, true, 60000);
   const start = text.indexOf('[');
