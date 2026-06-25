@@ -303,3 +303,153 @@ export function sanitizeParsedDetails(parsed) {
   return result;
 }
 
+async function callGeminiTextWithSearch(modelName, prompt, apiKey, timeoutMs = 60000) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        tools: [{ googleSearch: {} }]
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `API call failed for ${modelName}`);
+    }
+
+    const result = await response.json();
+    return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
+
+export async function gradeAeonSummaryWithGemini(articleTitle, articleLink, userSummary, apiKey) {
+  const prompt = `You are a verbal ability expert grading a student's summary of this article.
+Article Title: "${articleTitle}"
+Article Link: "${articleLink}"
+
+Your task:
+1. Visit/read the article using the provided link to understand its core arguments, structure, and tone.
+2. Evaluate the student's summary:
+   - Summary: "${userSummary}"
+3. Grade their summary's accuracy (score from 0 to 100). The target is 80%.
+4. Determine if they met the 80% comprehension target.
+5. List 2-3 specific strengths (what core arguments they successfully captured).
+6. List 2-3 omissions or misunderstandings (what main arguments they missed, oversimplified, or got wrong).
+7. Provide one short piece of actionable reading advice for this type of essay.
+
+Fallback instructions:
+If you cannot browse or access the link (e.g. paywall, robot limits), evaluate their summary based on your existing knowledge of the article title "${articleTitle}" and topic. Do not fail.
+
+Return ONLY a raw JSON object matching this schema. No markdown block tags (like \`\`\`json).
+{
+  "score": number,
+  "status": "Target Met (≥80%)" | "Target Missed (<80%)",
+  "strengths": ["string"],
+  "omissions": ["string"],
+  "advice": "string"
+}`;
+
+  const callModel = async (model) => {
+    const text = await callGeminiTextWithSearch(model, prompt, apiKey, 60000);
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error('No valid JSON found in Gemini grading response');
+    }
+    return JSON.parse(text.substring(start, end + 1));
+  };
+
+  try {
+    return await callModel('gemini-2.5-flash');
+  } catch (err2_5) {
+    console.warn('Gemini 2.5 Flash summary grading failed, trying fallback to 2.0 Flash:', err2_5);
+    try {
+      return await callModel('gemini-2.0-flash');
+    } catch (err2_0) {
+      console.error('Gemini fallback summary grading failed:', err2_0);
+      throw new Error(err2_5.message || 'Summary grading failed', { cause: err2_0 });
+    }
+  }
+}
+
+export async function generateAeonQuizWithGemini(articleTitle, articleLink, apiKey) {
+  const prompt = `You are a CAT (Common Admission Test) verbal ability (VARC) reading comprehension expert.
+Generate a high-quality Reading Comprehension (RC) quiz based on this article.
+Article Title: "${articleTitle}"
+Article Link: "${articleLink}"
+
+Your task:
+1. Retrieve/read the article using the provided link.
+2. Generate exactly 8 multiple-choice questions testing active comprehension.
+3. Keep the questions at CAT difficulty, including common traps.
+4. The questions should cover:
+   - Primary purpose / Central theme.
+   - Tone / Attitude of the author.
+   - Inference-based questions ("Which of the following can be inferred...", "The author's argument assumes...").
+   - Detail-based check or structure organization.
+5. For each question:
+   - 4 options (A, B, C, D) and exactly 1 correctOption.
+   - A detailed "explanation" for why the correct option is right.
+   - A detailed "traps" block showing why each incorrect option is wrong (e.g., "Extreme generalization", "Out of scope", "True but irrelevant").
+
+Fallback instructions:
+If you cannot browse or access the link, generate a custom high-quality CAT RC passage of ~500 words on the same topic/title ("${articleTitle}") and generate the 8 questions from that passage! The quiz must not fail.
+
+Return ONLY a raw JSON array matching this schema. No markdown block tags (like \`\`\`json).
+[
+  {
+    "question": "Question text...",
+    "options": {
+      "A": "Option A...",
+      "B": "Option B...",
+      "C": "Option C...",
+      "D": "Option D..."
+    },
+    "correctOption": "A" | "B" | "C" | "D",
+    "explanation": "Why correct...",
+    "traps": {
+      "A": "Trap analysis...",
+      "B": "Trap analysis...",
+      "C": "Trap analysis...",
+      "D": "Trap analysis..."
+    }
+  }
+]`;
+
+  const callModel = async (model) => {
+    const text = await callGeminiTextWithSearch(model, prompt, apiKey, 60000);
+    const start = text.indexOf('[');
+    const end = text.lastIndexOf(']');
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error('No valid JSON array found in Gemini quiz response');
+    }
+    return JSON.parse(text.substring(start, end + 1));
+  };
+
+  try {
+    return await callModel('gemini-2.5-flash');
+  } catch (err2_5) {
+    console.warn('Gemini 2.5 Flash quiz generation failed, trying fallback to 2.0: ', err2_5);
+    try {
+      return await callModel('gemini-2.0-flash');
+    } catch (err2_0) {
+      console.error('Gemini fallback quiz generation failed:', err2_0);
+      throw new Error(err2_5.message || 'Quiz generation failed', { cause: err2_0 });
+    }
+  }
+}
+
+

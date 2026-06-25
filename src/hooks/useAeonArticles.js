@@ -44,6 +44,11 @@ export async function addAeonArticle(article) {
     timeTaken: Number(article.timeTaken) || 0,
     wordCount: Number(article.wordCount) || 0,
     readingSpeed: (Number(article.wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(article.wordCount) / Number(article.timeTaken)) : 0,
+    content: article.content || '',
+    summaryGrade: article.summaryGrade || null,
+    quiz: article.quiz || null,
+    quizHighScore: article.quizHighScore || 0,
+    vocabMastery: article.vocabMastery || {},
     createdAt: serverTimestamp(),
   });
 }
@@ -65,5 +70,10 @@ export async function updateAeonArticle(id, article) {
     timeTaken: Number(article.timeTaken) || 0,
     wordCount: Number(article.wordCount) || 0,
     readingSpeed: (Number(article.wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(article.wordCount) / Number(article.timeTaken)) : 0,
+    content: article.content || '',
   });
+}
+
+export async function updateAeonArticleFields(id, patch) {
+  await updateDoc(doc(db, COLLECTION, id), patch);
 }
