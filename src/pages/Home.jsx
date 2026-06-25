@@ -43,11 +43,11 @@ export default function Home() {
   const { articles } = useAeonArticles();
   const { mocks } = useMockTests();
   const { tasks } = useTasks();
-  const { todos } = useTodos();
+  const { todos, loading: todosLoading } = useTodos();
   const { reminders } = useReminders();
 
   useEffect(() => {
-    if (loading || entries.length === 0) return;
+    if (loading || todosLoading || entries.length === 0) return;
 
     const today = todayStr();
     const lastWeek = shiftWeek(today, -1);
@@ -73,12 +73,18 @@ export default function Home() {
 
     if (topTag && maxCount > 0) {
       const planText = `[AI Plan] Practise drills to fix: ${topTag}`;
-      const alreadyExists = todos.some((t) => t.text === planText);
-      if (!alreadyExists) {
-        addTodo({ text: planText, dueDate: today });
+      const keyName = `ai_plan_created_${today}`;
+      const alreadyCreatedToday = localStorage.getItem(keyName);
+
+      if (!alreadyCreatedToday) {
+        const alreadyExists = todos.some((t) => t.text === planText);
+        if (!alreadyExists) {
+          addTodo({ text: planText, dueDate: today });
+        }
+        localStorage.setItem(keyName, 'true');
       }
     }
-  }, [entries, todos, loading]);
+  }, [entries, todos, loading, todosLoading]);
 
   if (!firebaseConfigured) return <ConfigWarning />;
 

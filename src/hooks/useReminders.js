@@ -8,17 +8,28 @@ const COLLECTION = 'reminders';
 
 export function useReminders() {
   const [reminders, setReminders] = useState([]);
+  const [loading, setLoading] = useState(firebaseConfigured);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!firebaseConfigured) return;
     const q = query(collection(db, COLLECTION), orderBy('date', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      setReminders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setReminders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error(err);
+        setError(err.message);
+        setLoading(false);
+      }
+    );
     return unsub;
   }, []);
 
-  return { reminders };
+  return { reminders, loading, error };
 }
 
 export async function addReminder({ text, date }) {

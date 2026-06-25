@@ -8,17 +8,28 @@ const COLLECTION = 'todos';
 
 export function useTodos() {
   const [todos, setTodos] = useState([]);
+  const [loading, setLoading] = useState(firebaseConfigured);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!firebaseConfigured) return;
     const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      setTodos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setTodos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error(err);
+        setError(err.message);
+        setLoading(false);
+      }
+    );
     return unsub;
   }, []);
 
-  return { todos };
+  return { todos, loading, error };
 }
 
 export async function addTodo({ text, dueDate }) {

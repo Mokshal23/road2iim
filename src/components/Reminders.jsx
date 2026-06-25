@@ -71,7 +71,14 @@ export default function Reminders({ reminders }) {
 
 /** Shift a YYYY-MM-DD string by n days and return a new YYYY-MM-DD string. */
 function shiftDate(dateStr, n) {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return '';
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  } catch (e) {
+    console.error('Error shifting date:', e);
+    return '';
+  }
 }
