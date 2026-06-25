@@ -119,6 +119,13 @@ npm install
 cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
+## What's new in v5 (High Availability & Enhanced Quizzes)
+
+- **⚙️ Multi-Model API Failover Sequence**: Implemented a robust 10-level fallback chain spanning Google Gemini (7 active models), Groq, DeepSeek, and Z.ai (Zhipu) API endpoints. If Gemini hits daily limits or rate limits, the app automatically fails over to Groq or other configured APIs, ensuring zero downtime.
+- **🎓 Test-Format CAT RC Quizzes**: Switched the quiz generation module to use an authentic test format. Answers, correct options, and explanations are hidden during testing, and the overall score is only calculated and revealed after submitting the entire test.
+- **📝 Persisted Review & Reflection Logging**: Added a detailed review panel to inspect correct options, understand traps (labeled as OOS, TBI, Extreme, Broad/Narrow, distortion), and save a custom **Self-Identified Error Analysis** directly to Firestore.
+- **⚙️ Fallback Keys Panel**: Expand the new fallback settings pane in the **AI Log Zone** to configure your Groq, DeepSeek, and Z.ai API keys.
+
 ## What's new in v4 (AI-Enabled Upgrades)
 
 - **🧠 AI Coach & Executive Summary**: Get a personal 3-sentence performance coaching briefing at the top of the **Today** tab, compiled from your recent 7-day study time, mock test results, and mistake tag trends.
