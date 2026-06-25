@@ -621,19 +621,16 @@ function SummaryGradingModal({ article, onClose }) {
 
 function QuestionReviewItem({ q, idx, userAnswer, errorLog, onSaveReflection }) {
   const isCorrect = userAnswer === q.correctOption;
+  const [prevErrorLog, setPrevErrorLog] = useState(errorLog);
   const [category, setCategory] = useState(errorLog?.category || '');
   const [customNote, setCustomNote] = useState(errorLog?.customNote || '');
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    if (errorLog) {
-      setCategory(errorLog.category || '');
-      setCustomNote(errorLog.customNote || '');
-    } else {
-      setCategory('');
-      setCustomNote('');
-    }
-  }, [errorLog]);
+  if (errorLog !== prevErrorLog) {
+    setPrevErrorLog(errorLog);
+    setCategory(errorLog?.category || '');
+    setCustomNote(errorLog?.customNote || '');
+  }
 
   const handleSave = () => {
     onSaveReflection(idx, category, customNote);

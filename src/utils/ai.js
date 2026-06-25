@@ -241,7 +241,7 @@ export async function callWithFallbackVision(prompt, base64Image, timeoutMs = 60
   throw new Error(`All fallback vision models failed. Last error: ${lastError?.message || lastError}`);
 }
 
-export async function parseScreenshotWithGemini(base64Image, apiKey) {
+export async function parseScreenshotWithGemini(base64Image) {
   const prompt = `You are a data extraction assistant for CAT (Common Admission Test) prep.
 Analyze this screenshot. It will be either:
 (A) A practice session, set, or drill report (single topic/section).
@@ -322,7 +322,7 @@ Do not write markdown block tags (like \`\`\`json). Return ONLY the raw JSON str
   }
 }
 
-export async function defineWordWithGemini(word, apiKey) {
+export async function defineWordWithGemini(word) {
   const prompt = `Define the word "${word}" in the context of CAT (Common Admission Test) vocabulary.
 Provide a concise definition and a key synonym in exactly one short line (e.g. "Meticulous: showing great attention to detail; precise (Syn: diligent)").
 Do not include markdown bold or block tags. Keep the definition under 14 words.`;
@@ -402,7 +402,7 @@ export function sanitizeParsedDetails(parsed) {
   return result;
 }
 
-export async function gradeAeonSummaryWithGemini(articleTitle, articleLink, userSummary, apiKey) {
+export async function gradeAeonSummaryWithGemini(articleTitle, articleLink, userSummary) {
   const prompt = `You are a verbal ability expert grading a student's summary of this article.
 Article Title: "${articleTitle}"
 Article Link: "${articleLink}"
@@ -438,7 +438,7 @@ Return ONLY a raw JSON object matching this schema. No markdown block tags (like
   return JSON.parse(text.substring(start, end + 1));
 }
 
-export async function generateAeonQuizWithGemini(articleTitle, articleLink, apiKey) {
+export async function generateAeonQuizWithGemini(articleTitle, articleLink) {
   const prompt = `You are a CAT (Common Admission Test) verbal ability (VARC) reading comprehension expert.
 Generate a high-quality Reading Comprehension (RC) quiz based on this article.
 Article Title: "${articleTitle}"
