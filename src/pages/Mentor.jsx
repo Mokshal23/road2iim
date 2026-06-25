@@ -20,6 +20,7 @@ import { useMentorship } from '../hooks/useMentorship';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
 import { firebaseConfigured } from '../firebase';
+import { runMigration } from '../utils/migration';
 
 const TABS = [
   { key: 'today', label: 'Today' },
@@ -59,6 +60,12 @@ export default function Mentor() {
       setStudentId(selectedStudentId);
     }
   }, [selectedStudentId, setStudentId]);
+
+  useEffect(() => {
+    if (studentId) {
+      runMigration(studentId);
+    }
+  }, [studentId]);
 
   const { entries, loading } = useEntries(studentId);
   const { goals } = useGoals(studentId);

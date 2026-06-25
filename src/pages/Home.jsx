@@ -23,6 +23,7 @@ import { firebaseConfigured } from '../firebase';
 import { todayStr, shiftWeek } from '../utils/dates';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
+import { runMigration } from '../utils/migration';
 
 const TABS = [
   { key: 'today', label: 'Today' },
@@ -47,6 +48,12 @@ export default function Home() {
       setStudentId(user.uid);
     }
   }, [user, setStudentId]);
+
+  useEffect(() => {
+    if (studentId) {
+      runMigration(studentId);
+    }
+  }, [studentId]);
 
   const { entries, loading } = useEntries(studentId);
   const { goals } = useGoals(studentId);
