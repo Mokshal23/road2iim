@@ -6,6 +6,7 @@ import { saveSessionRows } from '../hooks/useEntries';
 import TagPicker from './TagPicker';
 import AIScreenshotLog from './AIScreenshotLog';
 import { defineWordWithGemini } from '../utils/ai';
+import { useAppStore } from '../store/useAppStore';
 
 function defaultsFrom(entries, sectionKey) {
   const last = entries.find((e) => e.section === sectionKey);
@@ -32,6 +33,7 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
   const stats = computeStats(form);
   const topicOptions = TOPIC_SUGGESTIONS[form.subsection] || [];
   const [definingIdx, setDefiningIdx] = useState(null);
+  const isInvalid = form.attempted !== '' && form.correct !== '' && Number(form.correct) > Number(form.attempted);
 
   async function handleAutoDefine(idx, word) {
     if (!word) return;
@@ -94,10 +96,29 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
       setStatus({ type: 'error', msg: 'Fill in time, attempted and correct.' });
       return;
     }
+    const att = Number(form.attempted);
+    const cor = Number(form.correct);
+    const time = Number(form.timeTaken);
+    if (isNaN(att) || isNaN(cor) || isNaN(time)) {
+      setStatus({ type: 'error', msg: 'Attempted, correct, and time taken must be valid numbers.' });
+      return;
+    }
+    if (att < 0 || cor < 0 || time <= 0) {
+      setStatus({ type: 'error', msg: 'Attempted and correct must be positive. Time must be greater than 0.' });
+      return;
+    }
+    if (!Number.isInteger(att) || !Number.isInteger(cor)) {
+      setStatus({ type: 'error', msg: 'Attempted and correct must be whole numbers.' });
+      return;
+    }
+    if (cor > att) {
+      setStatus({ type: 'error', msg: 'Correct answers cannot exceed attempted questions.' });
+      return;
+    }
     setSaving(true);
     try {
       await saveSessionRows([{ ...form, date: todayStr(), section: sectionKey, notes: '' }]);
-      setStatus({ type: 'success', msg: 'Logged.' });
+      useAppStore.getState().showToast('Session logged successfully!', 'success');
       setForm((f) => ({ ...f, label: '', timeTaken: '', attempted: '', correct: '', mistakeTags: [], goodTags: [], vocab: [] }));
       setShowVocab(false);
     } catch (e2) {
@@ -162,8 +183,22 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
       <div className="quick-log__big-grid">
         <label>Time (min)<input type="number" min="0" step="0.5" autoFocus value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} /></label>
         <label>Attempted<input type="number" min="0" value={form.attempted} onChange={(e) => setForm({ ...form, attempted: e.target.value })} /></label>
-        <label>Correct<input type="number" min="0" value={form.correct} onChange={(e) => setForm({ ...form, correct: e.target.value })} /></label>
+        <label style={isInvalid ? { color: 'var(--red)' } : undefined}>
+          Correct
+          <input
+            type="number"
+            min="0"
+            value={form.correct}
+            onChange={(e) => setForm({ ...form, correct: e.target.value })}
+            style={isInvalid ? { borderColor: 'var(--red)', outlineColor: 'var(--red)' } : undefined}
+          />
+        </label>
       </div>
+      {isInvalid && (
+        <div style={{ color: 'var(--red)', fontSize: '12px', marginTop: '-8px', marginBottom: '8px', fontWeight: 500 }}>
+          ⚠️ Correct answers ({form.correct}) cannot exceed attempted questions ({form.attempted}).
+        </div>
+      )}
 
       <div className="row-card__tags">
         <span className="row-card__tags-label">What went well <span className="optional">(optional)</span>:</span>

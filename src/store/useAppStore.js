@@ -18,6 +18,14 @@ export const useAppStore = create((set, get) => {
     dailyTargets: null,
     examDate: null,
     examConfirmed: false,
+    toast: null,
+    showToast: (message, type = 'success') => {
+      set({ toast: { message, type } });
+      if (window.toastTimeout) clearTimeout(window.toastTimeout);
+      window.toastTimeout = setTimeout(() => {
+        set({ toast: null });
+      }, 3500);
+    },
 
     loading: {
       entries: false,

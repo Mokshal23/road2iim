@@ -8,6 +8,7 @@ import TaskBoard from '../components/TaskBoard';
 import AeonLog from '../components/AeonLog';
 import MockTests from '../components/MockTests';
 import ConfigWarning from '../components/ConfigWarning';
+import SkeletonLoader from '../components/SkeletonLoader';
 import { useEntries } from '../hooks/useEntries';
 import { useGoals } from '../hooks/useGoals';
 import { useComments } from '../hooks/useComments';
@@ -111,7 +112,7 @@ export default function Home() {
       </div>
 
       {loading ? (
-        <p className="empty">Loading your data…</p>
+        <SkeletonLoader type={tab === 'today' ? 'today' : 'card'} />
       ) : tab === 'today' ? (
         <TodayView
           entries={entries} aeonArticles={articles} mocks={mocks} targets={targets}

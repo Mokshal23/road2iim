@@ -5,6 +5,7 @@ import { useAuth, logout } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { useUserRole } from './hooks/useUserRole';
 import { firebaseConfigured } from './firebase';
+import Toast from './components/Toast';
 
 // Lazy load visual pages to optimize bundle chunking
 const Home = React.lazy(() => import('./pages/Home'));
@@ -66,6 +67,7 @@ export default function App() {
           )}
         </Routes>
       </Suspense>
+      <Toast />
     </BrowserRouter>
   );
 }

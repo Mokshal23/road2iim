@@ -3,6 +3,7 @@ import { formatPretty, todayStr, groupByDate } from '../utils/dates';
 import { aggregate } from '../utils/calc';
 import { deleteEntry, toggleEntryFlag } from '../hooks/useEntries';
 import EditEntryModal from './EditEntryModal';
+import { useAppStore } from '../store/useAppStore';
 
 export default function DayDrilldown({ entries, readOnly = false, sectionKey }) {
   const [selected, setSelected] = useState(null);
@@ -78,7 +79,18 @@ export default function DayDrilldown({ entries, readOnly = false, sectionKey }) 
                     {!readOnly && (
                       <>
                         <button className="icon-btn" onClick={() => setEditing(e)} aria-label="Edit">✎</button>
-                        <button className="icon-btn" onClick={() => deleteEntry(e.id)} aria-label="Delete">🗑</button>
+                        <button 
+                          className="icon-btn" 
+                          onClick={async () => { 
+                            if (window.confirm('Delete this practice entry?')) {
+                              await deleteEntry(e.id); 
+                              useAppStore.getState().showToast('Practice entry deleted.', 'info');
+                            }
+                          }} 
+                          aria-label="Delete"
+                        >
+                          🗑
+                        </button>
                       </>
                     )}
                   </td>

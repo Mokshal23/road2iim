@@ -7,6 +7,7 @@ import { addMockTest, deleteMockTest, toggleMockFlag } from '../hooks/useMockTes
 import { formatPretty, formatShort, todayStr } from '../utils/dates';
 import EditMockModal from './EditMockModal';
 import AIScreenshotLog from './AIScreenshotLog';
+import { useAppStore } from '../store/useAppStore';
 
 const SECTION_KEYS = ['VARC', 'LRDI', 'QA'];
 
@@ -159,7 +160,7 @@ function MockForm() {
     setStatus(null);
     try {
       await addMockTest({ date, source, label, overallScore, overallPercentile, notes, sections });
-      setStatus({ type: 'success', msg: 'Mock saved.' });
+      useAppStore.getState().showToast('Mock test scorecard saved successfully!', 'success');
       setLabel(''); setOverallScore(''); setOverallPercentile(''); setNotes(''); setSections(blankSections());
     } catch (e2) {
       setStatus({ type: 'error', msg: e2.message });
@@ -243,7 +244,18 @@ function MockTable({ mocks, readOnly }) {
                     {!readOnly && (
                       <>
                         <button className="icon-btn" onClick={() => setEditing(m)} aria-label="Edit">✎</button>
-                        <button className="icon-btn" onClick={() => deleteMockTest(m.id)} aria-label="Delete">🗑</button>
+                        <button 
+                          className="icon-btn" 
+                          onClick={async () => { 
+                            if (window.confirm('Delete this mock test scorecard?')) {
+                              await deleteMockTest(m.id); 
+                              useAppStore.getState().showToast('Mock scorecard deleted.', 'info');
+                            }
+                          }} 
+                          aria-label="Delete"
+                        >
+                          🗑
+                        </button>
                       </>
                     )}
                   </td>

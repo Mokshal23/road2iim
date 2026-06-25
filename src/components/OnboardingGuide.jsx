@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
 
+function speakWord(word) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = 'en-US';
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
 export default function OnboardingGuide() {
   const [dismissed, setDismissed] = useState(() => {
     return localStorage.getItem('onboarding_guide_dismissed') === 'true';
@@ -82,6 +91,12 @@ export default function OnboardingGuide() {
             <span style={{ fontSize: '16px', background: 'var(--surface)', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' }}>3</span>
             <div>
               <strong>Try AI Vocabulary:</strong> When logging practice sets or Aeon articles, type a word and press the **`✨` button** next to it to automatically download a concise dictionary definition and synonyms.
+              <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="vocab-chip" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 8px', fontSize: '12px' }} onClick={() => speakWord('cacophony')}>
+                  cacophony 🔊
+                </span>
+                <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>← Click this word to hear it pronounced!</span>
+              </div>
             </div>
           </div>
 

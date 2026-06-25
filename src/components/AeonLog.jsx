@@ -8,6 +8,15 @@ import Modal from './Modal';
 import ReadingSpeedTrend from './ReadingSpeedTrend';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
+function speakWord(word) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = 'en-US';
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
 function blankForm() {
   return {
     date: todayStr(),
@@ -260,7 +269,7 @@ function ArticleList({ articles, readOnly, onEdit, onGradeSummary, onPlayQuiz })
             {!readOnly && (
               <>
                 <button className="icon-btn" onClick={() => onEdit(a)} aria-label="Edit">✎</button>
-                <button className="icon-btn" onClick={() => deleteAeonArticle(a.id)} aria-label="Delete">🗑</button>
+                <button className="icon-btn" onClick={() => { if (window.confirm('Delete this Aeon article log?')) deleteAeonArticle(a.id); }} aria-label="Delete">🗑</button>
               </>
             )}
           </div>
@@ -286,10 +295,11 @@ function ArticleList({ articles, readOnly, onEdit, onGradeSummary, onPlayQuiz })
                 <span 
                   key={i} 
                   className="vocab-chip" 
-                  title={v.meaning}
-                  style={v.mastered ? { borderColor: 'var(--success)', color: 'var(--success)', background: 'rgba(54,143,99,0.06)' } : {}}
+                  title={`${v.meaning || 'No definition'} (Click to pronounce)`}
+                  onClick={() => speakWord(v.word)}
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', ...(v.mastered ? { borderColor: 'var(--success)', color: 'var(--success)', background: 'rgba(54,143,99,0.06)' } : {}) }}
                 >
-                  {v.word}{v.mastered ? ' ✓' : ''}
+                  {v.word} 🔊{v.mastered ? ' ✓' : ''}
                 </span>
               ))}
             </div>
@@ -417,8 +427,26 @@ function VocabBank({ articles, entries = [], onPlayVocabQuiz }) {
               >
                 {w.mastered ? '✓' : '○'}
               </button>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
                 <strong style={w.mastered ? { color: 'var(--success)' } : {}}>{w.word}</strong>
+                <button
+                  type="button"
+                  onClick={() => speakWord(w.word)}
+                  aria-label={`Pronounce ${w.word}`}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '2px 6px',
+                    color: 'var(--text-secondary)',
+                    borderRadius: '4px',
+                    lineHeight: 1
+                  }}
+                  title="Listen to pronunciation"
+                >
+                  🔊
+                </button>
                 {w.meaning && <span className="vocab-bank-list__meaning"> — {w.meaning}</span>}
                 <span className="vocab-bank-list__source"> · {w.articleTitle}</span>
               </div>

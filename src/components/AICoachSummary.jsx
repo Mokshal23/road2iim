@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { todayStr, shiftWeek } from '../utils/dates';
 import { callWithFallbackText } from '../utils/ai';
+import { useAppStore } from '../store/useAppStore';
 
 // Standard fetch to Gemini API for text generation (with 2.5 -> 1.5 fallback)
 async function generateCoachBriefing(apiKey, activitySummary) {
@@ -30,8 +31,10 @@ export default function AICoachSummary({ entries = [], mocks = [], articles = []
 
   function saveApiKey(key) {
     const trimmed = key.trim();
+    if (!trimmed) return;
     setApiKey(trimmed);
     localStorage.setItem('gemini_api_key', trimmed);
+    useAppStore.getState().showToast('API Key saved successfully!', 'success');
   }
 
   const handleRefresh = useCallback(async () => {
@@ -152,6 +155,7 @@ export default function AICoachSummary({ entries = [], mocks = [], articles = []
           localStorage.removeItem('gemini_api_key');
           setApiKey('');
           setSummary('');
+          useAppStore.getState().showToast('API Key removed.', 'info');
         }}
       >
         Remove Key

@@ -120,6 +120,19 @@ cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
 
+## What's new in v7 (Premium Onboarding & Robust UX/UI Upgrades)
+
+- **🔐 Self-Signup & Account Registration**: Direct user signup page with email/password registration, password visibility toggles, and user-friendly translations of Firebase error codes.
+- **🎓 Interactive Onboarding Center**: A tabbed interactive walkthrough panel at the top of the landing screen to help new users set up their free Gemini API keys, understand core metrics (Accuracy, Speed/MPM, negative marking, TITA), and discover app features.
+- **⚡ Index-Free Queries via Client-Side Sorting**: JavaScript-based sorting on data snapshots, making the database fully index-free. New users can log in and start tracking instantly without encountering Firebase console missing-index crashes.
+- **🛡️ Input Validation & Math Guardrails**: Submit-blocking input checks that verify correct answers do not exceed attempts, and restrict entry inputs to valid, non-negative integers.
+- **🗑️ Delete Confirmation Dialogs**: Clean browser/custom confirmation warnings before destructive deletes across practice logs, mocks, vocab, tasks, goals, and reminders.
+- **💾 sessionStorage Draft Autosave**: Automatically registers and restores notes/descriptions on tab switches or page reloads to prevent lost draft entries.
+- **🔊 Speech Synthesis Pronunciation**: Audio speech buttons (`🔊`) in the onboarding card and Vocabulary bank chips to read terms and definitions aloud.
+- **🍞 Custom Toast Notifications**: Slide-up success alerts (e.g. `✓ Session saved!`, `✓ API key updated!`) powered by the global Zustand store.
+- **💀 Pulsing Skeleton Loaders**: Custom loading placeholder shapes styled to pulse smoothly while data is fetched, replacing plain "Loading..." text.
+- **🎨 Smooth Theme transitions**: Sleek 0.3s CSS animations on colors and backgrounds when toggling light/dark mode.
+
 ## What's new in v6 (Enterprise SaaS Readiness)
 
 - **🔐 Self-Signup & Direct User Registration**: Added a toggle link on the login screen to allow your friends to register their own accounts directly from the browser.

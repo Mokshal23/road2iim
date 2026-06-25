@@ -41,7 +41,7 @@ export default function Reminders({ reminders }) {
                 <span className="reminder-item__text">{r.text}</span>
                 <span className="reminder-item__date">{formatPretty(r.date)}</span>
                 <button className="icon-btn" onClick={() => dismissReminder(r.id)} aria-label="Dismiss reminder">✓</button>
-                <button className="icon-btn" onClick={() => removeReminder(r.id)} aria-label="Delete reminder">✕</button>
+                <button className="icon-btn" onClick={() => { if (window.confirm('Delete this reminder?')) removeReminder(r.id); }} aria-label="Delete reminder">✕</button>
               </li>
             );
           })}

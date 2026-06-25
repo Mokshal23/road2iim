@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAppStore } from '../store/useAppStore';
 import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS, DIFFICULTY_OPTIONS } from '../constants';
 import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
@@ -37,9 +38,32 @@ export default function EntryForm({ sectionKey, entries = [] }) {
   const cfg = SECTIONS[sectionKey];
   const defaults = lastDefaultsFor(entries, sectionKey);
   const [date, setDate] = useState(todayStr());
-  const [rows, setRows] = useState([blankRow(sectionKey, defaults)]);
+  
+  const [rows, setRows] = useState(() => {
+    const draftKey = `entry_form_draft_${sectionKey}`;
+    try {
+      const draft = sessionStorage.getItem(draftKey);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Re-generate keys to prevent UUID duplication on mount
+          return parsed.map(r => ({ ...r, key: r.key || crypto.randomUUID() }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to read entry draft:', err);
+    }
+    return [blankRow(sectionKey, defaults)];
+  });
+
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+
+  // Autosave rows to sessionStorage on changes
+  useEffect(() => {
+    const draftKey = `entry_form_draft_${sectionKey}`;
+    sessionStorage.setItem(draftKey, JSON.stringify(rows));
+  }, [rows, sectionKey]);
 
   function handleAutofill(parsed) {
     if (parsed.section && parsed.section !== sectionKey) {
@@ -110,8 +134,24 @@ export default function EntryForm({ sectionKey, entries = [] }) {
 
   function validate() {
     for (const r of rows) {
-      if (!r.timeTaken || !r.attempted || r.correct === '') return 'Fill in time, attempted and correct for every row.';
-      if (Number(r.correct) > Number(r.attempted)) return 'Correct cannot exceed attempted.';
+      if (!r.timeTaken || !r.attempted || r.correct === '') {
+        return 'Fill in time, attempted and correct for every row.';
+      }
+      const att = Number(r.attempted);
+      const cor = Number(r.correct);
+      const time = Number(r.timeTaken);
+      if (isNaN(att) || isNaN(cor) || isNaN(time)) {
+        return 'Attempted, correct, and time taken must be valid numbers.';
+      }
+      if (att < 0 || cor < 0 || time <= 0) {
+        return 'Attempted and correct must be positive. Time taken must be greater than 0.';
+      }
+      if (!Number.isInteger(att) || !Number.isInteger(cor)) {
+        return 'Attempted and correct must be whole numbers.';
+      }
+      if (cor > att) {
+        return 'Correct answers cannot exceed attempted questions.';
+      }
     }
     return null;
   }
@@ -127,7 +167,12 @@ export default function EntryForm({ sectionKey, entries = [] }) {
     setStatus(null);
     try {
       await saveSessionRows(rows.map((r) => ({ ...r, date, section: sectionKey })));
-      setStatus({ type: 'success', msg: `Saved ${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} for ${date}.` });
+      const msg = `Saved ${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} successfully!`;
+      useAppStore.getState().showToast(msg, 'success');
+      
+      // Clear draft on successful save
+      sessionStorage.removeItem(`entry_form_draft_${sectionKey}`);
+      
       setRows([blankRow(sectionKey, defaults)]);
     } catch (e2) {
       setStatus({ type: 'error', msg: e2.message });
@@ -183,6 +228,7 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
   const topicOptions = TOPIC_SUGGESTIONS[row.subsection] || [];
   const listId = `topics-${row.key}`;
   const [definingIdx, setDefiningIdx] = useState(null);
+  const isInvalid = row.attempted !== '' && row.correct !== '' && Number(row.correct) > Number(row.attempted);
 
   async function handleAutoDefine(idx, word) {
     if (!word) return;
@@ -271,16 +317,22 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
             required
           />
         </label>
-
-        <label>
+        <label style={isInvalid ? { color: 'var(--red)' } : undefined}>
           Correct
           <input
             type="number" min="0" step="1"
             value={row.correct}
             onChange={(e) => onChange({ correct: e.target.value })}
             required
+            style={isInvalid ? { borderColor: 'var(--red)', outlineColor: 'var(--red)' } : undefined}
           />
         </label>
+
+        {isInvalid && (
+          <div style={{ gridColumn: '1 / -1', color: 'var(--red)', fontSize: '12px', marginTop: '-4px', marginBottom: '8px', fontWeight: 500 }}>
+            ⚠️ Correct answers ({row.correct}) cannot exceed attempted questions ({row.attempted}).
+          </div>
+        )}
 
         <label>
           Source

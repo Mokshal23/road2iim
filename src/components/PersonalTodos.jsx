@@ -66,7 +66,7 @@ function TodoRow({ todo }) {
           due {formatPretty(todo.dueDate)}
         </span>
       )}
-      <button className="icon-btn" onClick={() => removeTodo(todo.id)} aria-label="Delete to-do">✕</button>
+      <button className="icon-btn" onClick={() => { if (window.confirm('Delete this to-do item?')) removeTodo(todo.id); }} aria-label="Delete to-do">✕</button>
     </li>
   );
 }
