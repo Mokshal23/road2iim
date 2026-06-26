@@ -18,7 +18,16 @@ export default function CommentsPanel({ comments, canWrite = false, viewerRole =
     }
     return topLevel.map((t) => ({
       ...t,
-      replies: (repliesByParent[t.id] || []).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)),
+      replies: (repliesByParent[t.id] || []).sort((a, b) => {
+        const getMs = (e) => {
+          if (!e.createdAt) return 0;
+          if (typeof e.createdAt === 'string') return new Date(e.createdAt).getTime();
+          if (e.createdAt?.seconds) return e.createdAt.seconds * 1000;
+          if (e.createdAt?.toMillis) return e.createdAt.toMillis();
+          return 0;
+        };
+        return getMs(a) - getMs(b);
+      }),
     }));
   }, [comments]);
 

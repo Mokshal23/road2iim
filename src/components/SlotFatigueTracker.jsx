@@ -27,6 +27,8 @@ export default function SlotFatigueTracker({ entries = [], sectionKey, selectedD
     // Sort chronologically using createdAt or sessionSeq
     const sorted = [...sectionEntries].sort((a, b) => {
       const getMs = (e) => {
+        if (!e.createdAt) return 0;
+        if (typeof e.createdAt === 'string') return new Date(e.createdAt).getTime();
         if (e.createdAt?.seconds) return e.createdAt.seconds * 1000;
         if (e.createdAt?.toMillis) return e.createdAt.toMillis();
         return 0; // Exclude or put at beginning if no timestamp
@@ -37,13 +39,14 @@ export default function SlotFatigueTracker({ entries = [], sectionKey, selectedD
       return (a.sessionSeq || 0) - (b.sessionSeq || 0);
     });
 
-    // Classify sorted entries into sequence order buckets
-    sorted.forEach((e, idx) => {
-      if (idx === 0) bucketEntries['1st'].push(e);
-      else if (idx === 1) bucketEntries['2nd'].push(e);
-      else if (idx === 2) bucketEntries['3rd'].push(e);
-      else if (idx === 3) bucketEntries['4th'].push(e);
-      else if (idx === 4) bucketEntries['5th'].push(e);
+    // Classify sorted entries into sequence order buckets based on their session sequence
+    sorted.forEach((e) => {
+      const seq = e.sessionSeq || 0;
+      if (seq === 0) bucketEntries['1st'].push(e);
+      else if (seq === 1) bucketEntries['2nd'].push(e);
+      else if (seq === 2) bucketEntries['3rd'].push(e);
+      else if (seq === 3) bucketEntries['4th'].push(e);
+      else if (seq === 4) bucketEntries['5th'].push(e);
       else bucketEntries['6th+'].push(e);
     });
 
