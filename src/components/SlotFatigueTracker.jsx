@@ -16,9 +16,9 @@ const BUCKETS = [
 export default function SlotFatigueTracker({ entries = [], sectionKey, selectedDate }) {
   const dateToUse = selectedDate || todayStr();
 
-  // Filter entries to only include those from the selected day and section
+  // Filter entries to only include those from the selected day and section with active questions
   const sectionEntries = useMemo(() => {
-    return entries.filter((e) => e.section === sectionKey && e.date === dateToUse);
+    return entries.filter((e) => e.section === sectionKey && e.date === dateToUse && (e.attempted || 0) > 0);
   }, [entries, sectionKey, dateToUse]);
 
   const chartData = useMemo(() => {

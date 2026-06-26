@@ -164,7 +164,7 @@ export const EntryWriteSchema = z.object({
   subsection: z.string().min(1, "Subsection is required"),
   topic: z.string().trim().default('General'),
   label: z.string().trim().default(''),
-  timeTaken: z.preprocess((val) => Number(val), z.number().positive("Time taken must be positive")),
+  timeTaken: z.preprocess((val) => Number(val), z.number().nonnegative("Time taken must be non-negative")),
   attempted: z.preprocess((val) => Number(val), z.number().int().nonnegative("Attempted must be a non-negative integer")),
   correct: z.preprocess((val) => Number(val), z.number().int().nonnegative("Correct must be a non-negative integer")),
   negativeMarking: z.boolean().default(true),

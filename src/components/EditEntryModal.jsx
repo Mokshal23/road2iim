@@ -24,6 +24,7 @@ export default function EditEntryModal({ entry, onClose }) {
     vocab: entry.vocab?.length ? entry.vocab : [{ word: '', meaning: '' }],
   });
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
   const cfg = SECTIONS[entry.section];
   const stats = computeStats(form);
   const topicOptions = TOPIC_SUGGESTIONS[form.subsection] || [];
@@ -52,12 +53,62 @@ export default function EditEntryModal({ entry, onClose }) {
 
   async function handleSave(e) {
     e.preventDefault();
+    setErrorMsg(null);
+
+    const hasTime = form.timeTaken !== '';
+    const hasAttempted = form.attempted !== '';
+    const hasCorrect = form.correct !== '';
+
+    if (hasTime) {
+      const time = Number(form.timeTaken);
+      if (isNaN(time) || time <= 0) {
+        setErrorMsg('Time taken must be a valid number greater than 0.');
+        return;
+      }
+    }
+
+    if (hasAttempted || hasCorrect) {
+      if (!hasAttempted || !hasCorrect) {
+        setErrorMsg('If logging questions, both attempted and correct must be filled.');
+        return;
+      }
+      const att = Number(form.attempted);
+      const cor = Number(form.correct);
+      if (isNaN(att) || isNaN(cor)) {
+        setErrorMsg('Attempted and correct must be valid numbers.');
+        return;
+      }
+      if (att < 0 || cor < 0) {
+        setErrorMsg('Attempted and correct must be non-negative.');
+        return;
+      }
+      if (!Number.isInteger(att) || !Number.isInteger(cor)) {
+        setErrorMsg('Attempted and correct must be whole numbers.');
+        return;
+      }
+      if (cor > att) {
+        setErrorMsg('Correct answers cannot exceed attempted questions.');
+        return;
+      }
+    }
+
+    const hasContent = form.topic || form.label || form.notes || (form.vocab && form.vocab.length > 0 && form.vocab[0].word) || (form.mistakeTags && form.mistakeTags.length > 0) || (form.goodTags && form.goodTags.length > 0);
+    if (!hasTime && !hasAttempted && !hasCorrect && !hasContent) {
+      setErrorMsg('Please enter some details (time, questions, topic, notes, or vocab) to log.');
+      return;
+    }
+
     setSaving(true);
-    const payload = { ...form };
-    if (entry.section !== 'VARC') delete payload.vocab;
-    await updateEntry(entry.id, payload);
-    setSaving(false);
-    onClose();
+    try {
+      const payload = { ...form };
+      if (entry.section !== 'VARC') delete payload.vocab;
+      await updateEntry(entry.id, payload);
+      onClose();
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to update entry.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -79,9 +130,9 @@ export default function EditEntryModal({ entry, onClose }) {
             <datalist id="edit-topics">{topicOptions.map((t) => <option key={t} value={t} />)}</datalist>
           </label>
           <label>Label<input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} /></label>
-          <label>Time taken (min)<input type="number" min="0" step="0.5" value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} required /></label>
-          <label>Attempted<input type="number" min="0" value={form.attempted} onChange={(e) => setForm({ ...form, attempted: e.target.value })} required /></label>
-          <label>Correct<input type="number" min="0" value={form.correct} onChange={(e) => setForm({ ...form, correct: e.target.value })} required /></label>
+          <label>Time taken (min)<input type="number" min="0" step="0.5" value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} /></label>
+          <label>Attempted<input type="number" min="0" value={form.attempted} onChange={(e) => setForm({ ...form, attempted: e.target.value })} /></label>
+          <label>Correct<input type="number" min="0" value={form.correct} onChange={(e) => setForm({ ...form, correct: e.target.value })} /></label>
           <label>
             Source
             <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
@@ -168,6 +219,10 @@ export default function EditEntryModal({ entry, onClose }) {
           <div className="stat"><div className="stat__value">{stats.marksLost}</div><div className="stat__label">Lost</div></div>
           <div className="stat"><div className="stat__value">{stats.marksPerMinute}</div><div className="stat__label">Marks/min</div></div>
         </div>
+
+        {errorMsg && (
+          <div className="status status--error" style={{ marginBottom: 15 }}>{errorMsg}</div>
+        )}
 
         <div className="entry-form__actions">
           <button type="button" className="btn btn--ghost" onClick={onClose}>Cancel</button>

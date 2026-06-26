@@ -128,23 +128,40 @@ export default function EntryForm({ sectionKey, entries = [] }) {
 
   function validate() {
     for (const r of rows) {
-      if (!r.timeTaken || !r.attempted || r.correct === '') {
-        return 'Fill in time, attempted and correct for every row.';
+      const hasTime = r.timeTaken !== '';
+      const hasAttempted = r.attempted !== '';
+      const hasCorrect = r.correct !== '';
+
+      if (hasTime) {
+        const time = Number(r.timeTaken);
+        if (isNaN(time) || time <= 0) {
+          return 'Time taken must be a valid number greater than 0.';
+        }
       }
-      const att = Number(r.attempted);
-      const cor = Number(r.correct);
-      const time = Number(r.timeTaken);
-      if (isNaN(att) || isNaN(cor) || isNaN(time)) {
-        return 'Attempted, correct, and time taken must be valid numbers.';
+
+      if (hasAttempted || hasCorrect) {
+        if (!hasAttempted || !hasCorrect) {
+          return 'If logging questions, both attempted and correct must be filled.';
+        }
+        const att = Number(r.attempted);
+        const cor = Number(r.correct);
+        if (isNaN(att) || isNaN(cor)) {
+          return 'Attempted and correct must be valid numbers.';
+        }
+        if (att < 0 || cor < 0) {
+          return 'Attempted and correct must be non-negative.';
+        }
+        if (!Number.isInteger(att) || !Number.isInteger(cor)) {
+          return 'Attempted and correct must be whole numbers.';
+        }
+        if (cor > att) {
+          return 'Correct answers cannot exceed attempted questions.';
+        }
       }
-      if (att < 0 || cor < 0 || time <= 0) {
-        return 'Attempted and correct must be positive. Time taken must be greater than 0.';
-      }
-      if (!Number.isInteger(att) || !Number.isInteger(cor)) {
-        return 'Attempted and correct must be whole numbers.';
-      }
-      if (cor > att) {
-        return 'Correct answers cannot exceed attempted questions.';
+
+      const hasContent = r.topic || r.label || r.notes || (r.vocab && r.vocab.length > 0 && r.vocab[0].word) || (r.mistakeTags && r.mistakeTags.length > 0) || (r.goodTags && r.goodTags.length > 0);
+      if (!hasTime && !hasAttempted && !hasCorrect && !hasContent) {
+        return 'Please enter some details (time, questions, topic, notes, or vocab) to log.';
       }
     }
     return null;
@@ -298,7 +315,6 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
             type="number" min="0" step="0.5"
             value={row.timeTaken}
             onChange={(e) => onChange({ timeTaken: e.target.value })}
-            required
           />
         </label>
 
@@ -308,7 +324,6 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
             type="number" min="0" step="1"
             value={row.attempted}
             onChange={(e) => onChange({ attempted: e.target.value })}
-            required
           />
         </label>
         <label style={isInvalid ? { color: 'var(--red)' } : undefined}>
@@ -317,7 +332,6 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
             type="number" min="0" step="1"
             value={row.correct}
             onChange={(e) => onChange({ correct: e.target.value })}
-            required
             style={isInvalid ? { borderColor: 'var(--red)', outlineColor: 'var(--red)' } : undefined}
           />
         </label>

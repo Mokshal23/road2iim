@@ -92,29 +92,51 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.timeTaken || !form.attempted || form.correct === '') {
-      setStatus({ type: 'error', msg: 'Fill in time, attempted and correct.' });
+    setStatus(null);
+
+    const hasTime = form.timeTaken !== '';
+    const hasAttempted = form.attempted !== '';
+    const hasCorrect = form.correct !== '';
+
+    if (hasTime) {
+      const time = Number(form.timeTaken);
+      if (isNaN(time) || time <= 0) {
+        setStatus({ type: 'error', msg: 'Time taken must be a valid number greater than 0.' });
+        return;
+      }
+    }
+
+    if (hasAttempted || hasCorrect) {
+      if (!hasAttempted || !hasCorrect) {
+        setStatus({ type: 'error', msg: 'If logging questions, both attempted and correct must be filled.' });
+        return;
+      }
+      const att = Number(form.attempted);
+      const cor = Number(form.correct);
+      if (isNaN(att) || isNaN(cor)) {
+        setStatus({ type: 'error', msg: 'Attempted and correct must be valid numbers.' });
+        return;
+      }
+      if (att < 0 || cor < 0) {
+        setStatus({ type: 'error', msg: 'Attempted and correct must be non-negative.' });
+        return;
+      }
+      if (!Number.isInteger(att) || !Number.isInteger(cor)) {
+        setStatus({ type: 'error', msg: 'Attempted and correct must be whole numbers.' });
+        return;
+      }
+      if (cor > att) {
+        setStatus({ type: 'error', msg: 'Correct answers cannot exceed attempted questions.' });
+        return;
+      }
+    }
+
+    const hasContent = form.topic || form.label || form.notes || (form.vocab && form.vocab.length > 0 && form.vocab[0].word) || (form.mistakeTags && form.mistakeTags.length > 0) || (form.goodTags && form.goodTags.length > 0);
+    if (!hasTime && !hasAttempted && !hasCorrect && !hasContent) {
+      setStatus({ type: 'error', msg: 'Please enter some details (time, questions, topic, notes, or vocab) to log.' });
       return;
     }
-    const att = Number(form.attempted);
-    const cor = Number(form.correct);
-    const time = Number(form.timeTaken);
-    if (isNaN(att) || isNaN(cor) || isNaN(time)) {
-      setStatus({ type: 'error', msg: 'Attempted, correct, and time taken must be valid numbers.' });
-      return;
-    }
-    if (att < 0 || cor < 0 || time <= 0) {
-      setStatus({ type: 'error', msg: 'Attempted and correct must be positive. Time must be greater than 0.' });
-      return;
-    }
-    if (!Number.isInteger(att) || !Number.isInteger(cor)) {
-      setStatus({ type: 'error', msg: 'Attempted and correct must be whole numbers.' });
-      return;
-    }
-    if (cor > att) {
-      setStatus({ type: 'error', msg: 'Correct answers cannot exceed attempted questions.' });
-      return;
-    }
+
     setSaving(true);
     try {
       await saveSessionRows([{ ...form, date: todayStr(), section: sectionKey, notes: '' }]);

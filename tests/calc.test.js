@@ -54,6 +54,24 @@ describe('CAT Scoring and Metrics Calculations', () => {
       expect(stats.marksPerMinute).toBe(0);
       expect(stats.timePerQuestion).toBe(0);
     });
+
+    it('handles missing/undefined numeric inputs safely for concept-only logging', () => {
+      const stats = computeStats({
+        attempted: undefined,
+        correct: undefined,
+        timeTaken: undefined,
+        negativeMarking: true,
+      });
+
+      expect(stats.attempted).toBe(0);
+      expect(stats.correct).toBe(0);
+      expect(stats.wrong).toBe(0);
+      expect(stats.timeTaken).toBe(0);
+      expect(stats.accuracy).toBe(0);
+      expect(stats.marks).toBe(0);
+      expect(stats.marksPerMinute).toBe(0);
+      expect(stats.timePerQuestion).toBe(0);
+    });
   });
 
   describe('aggregate', () => {
