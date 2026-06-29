@@ -51,7 +51,12 @@ export default function TodayView({
             <SectionBalance entries={weekEntries} aeonArticles={weekArticles} />
           </CardErrorBoundary>
           <CardErrorBoundary>
-            <StreakHeatmap activeDates={activeDates} />
+            <StreakHeatmap 
+              activeDates={activeDates} 
+              entries={safeEntries} 
+              aeonArticles={safeArticles} 
+              mocks={safeMocks} 
+            />
           </CardErrorBoundary>
         </div>
         <div className="today-grid__right">
