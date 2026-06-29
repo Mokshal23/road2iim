@@ -38,7 +38,10 @@ function lastDefaultsFor(entries, sectionKey) {
 export default function EntryForm({ sectionKey, entries = [] }) {
   const cfg = SECTIONS[sectionKey];
   const defaults = lastDefaultsFor(entries, sectionKey);
-  const [date, setDate] = useState(todayStr());
+  const [date, setDate] = useState(() => {
+    const draftDateKey = `entry_form_draft_date_${sectionKey}`;
+    return safeStorage.getSessionItem(draftDateKey, todayStr());
+  });
   
   const [rows, setRows] = useState(() => {
     const draftKey = `entry_form_draft_${sectionKey}`;
@@ -53,11 +56,16 @@ export default function EntryForm({ sectionKey, entries = [] }) {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
 
-  // Autosave rows to sessionStorage on changes
+  // Autosave rows and date to sessionStorage on changes
   useEffect(() => {
     const draftKey = `entry_form_draft_${sectionKey}`;
     safeStorage.setSessionItem(draftKey, rows);
   }, [rows, sectionKey]);
+
+  useEffect(() => {
+    const draftDateKey = `entry_form_draft_date_${sectionKey}`;
+    safeStorage.setSessionItem(draftDateKey, date);
+  }, [date, sectionKey]);
 
   function handleAutofill(parsed) {
     if (parsed.section && parsed.section !== sectionKey) {
@@ -183,6 +191,7 @@ export default function EntryForm({ sectionKey, entries = [] }) {
       
       // Clear draft on successful save
       safeStorage.removeSessionItem(`entry_form_draft_${sectionKey}`);
+      safeStorage.removeSessionItem(`entry_form_draft_date_${sectionKey}`);
       
       setRows([blankRow(sectionKey, defaults)]);
     } catch (e2) {

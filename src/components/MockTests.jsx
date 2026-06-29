@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
@@ -9,6 +9,7 @@ import EditMockModal from './EditMockModal';
 import AIScreenshotLog from './AIScreenshotLog';
 import { useAppStore } from '../store/useAppStore';
 import TagPicker from './TagPicker';
+import { safeStorage } from '../utils/storage';
 
 const SECTION_KEYS = ['VARC', 'LRDI', 'QA'];
 
@@ -81,17 +82,26 @@ export default function MockTests({ mocks, readOnly = false }) {
 }
 
 function MockForm() {
-  const [date, setDate] = useState(todayStr());
-  const [source, setSource] = useState(MOCK_SOURCES[0]);
-  const [label, setLabel] = useState('');
-  const [overallScore, setOverallScore] = useState('');
-  const [overallPercentile, setOverallPercentile] = useState('');
-  const [notes, setNotes] = useState('');
-  const [sections, setSections] = useState(blankSections());
-  const [goodTags, setGoodTags] = useState([]);
-  const [mistakeTags, setMistakeTags] = useState([]);
+  const [draft] = useState(() => safeStorage.getSessionItem('mock_form_draft') || {});
+
+  const [date, setDate] = useState(draft.date || todayStr());
+  const [source, setSource] = useState(draft.source || MOCK_SOURCES[0]);
+  const [label, setLabel] = useState(draft.label || '');
+  const [overallScore, setOverallScore] = useState(draft.overallScore || '');
+  const [overallPercentile, setOverallPercentile] = useState(draft.overallPercentile || '');
+  const [notes, setNotes] = useState(draft.notes || '');
+  const [sections, setSections] = useState(draft.sections || blankSections());
+  const [goodTags, setGoodTags] = useState(draft.goodTags || []);
+  const [mistakeTags, setMistakeTags] = useState(draft.mistakeTags || []);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+
+  // Autosave form changes to sessionStorage
+  useEffect(() => {
+    safeStorage.setSessionItem('mock_form_draft', {
+      date, source, label, overallScore, overallPercentile, notes, sections, goodTags, mistakeTags
+    });
+  }, [date, source, label, overallScore, overallPercentile, notes, sections, goodTags, mistakeTags]);
 
   function updateSection(key, patch) {
     setSections((s) => ({ ...s, [key]: { ...s[key], ...patch } }));
@@ -166,6 +176,7 @@ function MockForm() {
     try {
       await addMockTest({ date, source, label, overallScore, overallPercentile, notes, sections, goodTags, mistakeTags });
       useAppStore.getState().showToast('Mock test scorecard saved successfully!', 'success');
+      safeStorage.removeSessionItem('mock_form_draft');
       setLabel(''); setOverallScore(''); setOverallPercentile(''); setNotes(''); setSections(blankSections());
       setGoodTags([]); setMistakeTags([]);
     } catch (e2) {

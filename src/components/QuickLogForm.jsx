@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS, DIFFICULTY_OPTIONS } from '../constants';
 import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
@@ -7,6 +7,7 @@ import TagPicker from './TagPicker';
 import AIScreenshotLog from './AIScreenshotLog';
 import { defineWordWithGemini } from '../utils/ai';
 import { useAppStore } from '../store/useAppStore';
+import { safeStorage } from '../utils/storage';
 
 function defaultsFrom(entries, sectionKey) {
   const last = entries.find((e) => e.section === sectionKey);
@@ -21,11 +22,16 @@ function defaultsFrom(entries, sectionKey) {
 export default function QuickLogForm({ sectionKey, entries = [] }) {
   const cfg = SECTIONS[sectionKey];
   const seed = defaultsFrom(entries, sectionKey);
-  const [form, setForm] = useState({
-    subsection: seed.subsection, topic: seed.topic, source: seed.source,
-    label: '',
-    timeTaken: '', attempted: '', correct: '', negativeMarking: true, mistakeTags: [], goodTags: [],
-    difficulty: 'Medium', vocab: [],
+  
+  const [form, setForm] = useState(() => {
+    const draftKey = `quick_log_draft_${sectionKey}`;
+    const draft = safeStorage.getSessionItem(draftKey);
+    return draft || {
+      subsection: seed.subsection, topic: seed.topic, source: seed.source,
+      label: '',
+      timeTaken: '', attempted: '', correct: '', negativeMarking: true, mistakeTags: [], goodTags: [],
+      difficulty: 'Medium', vocab: [],
+    };
   });
   const [showVocab, setShowVocab] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,6 +39,11 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
   const stats = computeStats(form);
   const topicOptions = TOPIC_SUGGESTIONS[form.subsection] || [];
   const [definingIdx, setDefiningIdx] = useState(null);
+
+  // Autosave form changes to sessionStorage
+  useEffect(() => {
+    safeStorage.setSessionItem(`quick_log_draft_${sectionKey}`, form);
+  }, [form, sectionKey]);
   const isInvalid = form.attempted !== '' && form.correct !== '' && Number(form.correct) > Number(form.attempted);
 
   async function handleAutoDefine(idx, word) {
@@ -141,6 +152,7 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
     try {
       await saveSessionRows([{ ...form, date: todayStr(), section: sectionKey, notes: '' }]);
       useAppStore.getState().showToast('Session logged successfully!', 'success');
+      safeStorage.removeSessionItem(`quick_log_draft_${sectionKey}`);
       setForm((f) => ({ ...f, label: '', timeTaken: '', attempted: '', correct: '', mistakeTags: [], goodTags: [], vocab: [] }));
       setShowVocab(false);
     } catch (e2) {

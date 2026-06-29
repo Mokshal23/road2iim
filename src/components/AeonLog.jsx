@@ -6,6 +6,7 @@ import { defineWordWithGemini, gradeAeonSummaryWithGemini, generateAeonQuizWithG
 import Modal from './Modal';
 import ReadingSpeedTrend from './ReadingSpeedTrend';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { safeStorage } from '../utils/storage';
 
 function speakWord(word) {
   if ('speechSynthesis' in window) {
@@ -83,22 +84,35 @@ export default function AeonLog({ articles = [], readOnly = false }) {
 }
 
 function AeonForm({ editArticle = null, onDone = null }) {
-  const [form, setForm] = useState(editArticle ? {
-    date: editArticle.date,
-    title: editArticle.title,
-    topic: editArticle.topic,
-    difficulty: editArticle.difficulty,
-    summary: editArticle.summary || '',
-    vocab: editArticle.vocab?.length ? editArticle.vocab : [{ word: '', meaning: '' }],
-    link: editArticle.link || '',
-    timeTaken: editArticle.timeTaken || '',
-    wordCount: editArticle.wordCount || '',
-    content: editArticle.content || '',
-  } : blankForm());
+  const isEdit = Boolean(editArticle);
+  const [form, setForm] = useState(() => {
+    if (editArticle) {
+      return {
+        date: editArticle.date,
+        title: editArticle.title,
+        topic: editArticle.topic,
+        difficulty: editArticle.difficulty,
+        summary: editArticle.summary || '',
+        vocab: editArticle.vocab?.length ? editArticle.vocab : [{ word: '', meaning: '' }],
+        link: editArticle.link || '',
+        timeTaken: editArticle.timeTaken || '',
+        wordCount: editArticle.wordCount || '',
+        content: editArticle.content || '',
+      };
+    }
+    const draft = safeStorage.getSessionItem('aeon_form_draft');
+    return draft || blankForm();
+  });
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
-  const isEdit = Boolean(editArticle);
   const [definingIdx, setDefiningIdx] = useState(null);
+
+  // Autosave form draft on change
+  useEffect(() => {
+    if (!isEdit) {
+      safeStorage.setSessionItem('aeon_form_draft', form);
+    }
+  }, [form, isEdit]);
 
   function updateVocab(idx, patch) {
     setForm((f) => ({ ...f, vocab: f.vocab.map((v, i) => (i === idx ? { ...v, ...patch } : v)) }));
@@ -142,6 +156,7 @@ function AeonForm({ editArticle = null, onDone = null }) {
       } else {
         await addAeonArticle(form);
         setStatus({ type: 'success', msg: 'Article logged.' });
+        safeStorage.removeSessionItem('aeon_form_draft');
         setForm(blankForm());
       }
     } catch (e2) {
