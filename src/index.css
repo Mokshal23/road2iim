@@ -1676,3 +1676,85 @@ body[data-theme="light"] .header-tab--active {
   }
 }
 
+/* Mock Test Insights styling */
+.insight-banner {
+  border-left: 4px solid var(--border);
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  margin-bottom: 12px;
+}
+
+.banner--warning {
+  border-left-color: var(--amber) !important;
+}
+
+.banner--tip {
+  border-left-color: var(--success) !important;
+}
+
+.banner--danger {
+  border-left-color: var(--danger) !important;
+}
+
+.banner--info {
+  border-left-color: var(--blue) !important;
+}
+
+.insight-banner h4 {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.insight-banner p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 100px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--amber);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: var(--surface-raised);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.fill--good {
+  background: var(--success);
+}
+
+.fill--bad {
+  background: var(--danger);
+}
+

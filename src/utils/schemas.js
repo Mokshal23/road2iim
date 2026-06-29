@@ -228,6 +228,8 @@ export const MockTestWriteSchema = z.object({
   }),
   notes: z.string().trim().default(''),
   flagged: z.boolean().default(false),
+  goodTags: z.array(z.string()).optional().default([]),
+  mistakeTags: z.array(z.string()).optional().default([]),
 });
 
 export const AeonArticleWriteSchema = z.object({

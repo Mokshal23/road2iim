@@ -23,7 +23,7 @@ export function useMockTests(studentId) {
   return { mocks, loading };
 }
 
-export async function addMockTest({ date, source, label, overallScore, overallPercentile, notes, sections }) {
+export async function addMockTest({ date, source, label, overallScore, overallPercentile, notes, sections, goodTags = [], mistakeTags = [] }) {
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
@@ -43,6 +43,8 @@ export async function addMockTest({ date, source, label, overallScore, overallPe
     notes: DOMPurify.sanitize(notes || ''),
     sections: computedSections,
     flagged: false,
+    goodTags: (goodTags || []).map((t) => DOMPurify.sanitize(t)),
+    mistakeTags: (mistakeTags || []).map((t) => DOMPurify.sanitize(t)),
   };
 
   validateWrite(MockTestWriteSchema, dataToSave);
@@ -57,7 +59,7 @@ export async function deleteMockTest(id) {
   await deleteDoc(doc(db, COLLECTION, id));
 }
 
-export async function updateMockTest(id, { date, source, label, overallScore, overallPercentile, notes, sections, flagged = false }) {
+export async function updateMockTest(id, { date, source, label, overallScore, overallPercentile, notes, sections, goodTags = [], mistakeTags = [], flagged = false }) {
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
@@ -77,6 +79,8 @@ export async function updateMockTest(id, { date, source, label, overallScore, ov
     notes: DOMPurify.sanitize(notes || ''),
     sections: computedSections,
     flagged: Boolean(flagged),
+    goodTags: (goodTags || []).map((t) => DOMPurify.sanitize(t)),
+    mistakeTags: (mistakeTags || []).map((t) => DOMPurify.sanitize(t)),
   };
 
   validateWrite(MockTestWriteSchema, dataToSave);

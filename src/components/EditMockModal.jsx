@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import Modal from './Modal';
-import { MOCK_SOURCES, SECTIONS } from '../constants';
+import { MOCK_SOURCES, SECTIONS, POSITIVE_TAGS, MISTAKE_TAGS } from '../constants';
 import { updateMockTest } from '../hooks/useMockTests';
+import TagPicker from './TagPicker';
 
 const SECTION_KEYS = ['VARC', 'LRDI', 'QA'];
 
@@ -19,6 +20,8 @@ export default function EditMockModal({ mock, onClose }) {
       timeTaken: mock.sections?.[k]?.timeTaken ?? 0,
     }]))
   );
+  const [goodTags, setGoodTags] = useState(mock.goodTags || []);
+  const [mistakeTags, setMistakeTags] = useState(mock.mistakeTags || []);
   const [saving, setSaving] = useState(false);
 
   function updateSection(key, patch) {
@@ -28,7 +31,7 @@ export default function EditMockModal({ mock, onClose }) {
   async function handleSave(e) {
     e.preventDefault();
     setSaving(true);
-    await updateMockTest(mock.id, { date, source, label, overallScore, overallPercentile, notes, sections });
+    await updateMockTest(mock.id, { date, source, label, overallScore, overallPercentile, notes, sections, goodTags, mistakeTags });
     setSaving(false);
     onClose();
   }
@@ -59,7 +62,17 @@ export default function EditMockModal({ mock, onClose }) {
           })}
         </div>
 
-        <label className="aeon-summary">
+        <div className="row-card__tags" style={{ marginTop: '15px' }}>
+          <span className="row-card__tags-label">What went well <span className="optional">(optional, max 3)</span>:</span>
+          <TagPicker value={goodTags} onChange={setGoodTags} options={POSITIVE_TAGS} good />
+        </div>
+
+        <div className="row-card__tags" style={{ marginTop: '10px' }}>
+          <span className="row-card__tags-label">What went wrong <span className="optional">(optional, max 3)</span>:</span>
+          <TagPicker value={mistakeTags} onChange={setMistakeTags} options={MISTAKE_TAGS} />
+        </div>
+
+        <label className="aeon-summary" style={{ marginTop: '15px' }}>
           Notes
           <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </label>

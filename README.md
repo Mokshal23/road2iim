@@ -85,9 +85,12 @@ links, exactly like the Google Sheet workflow you're used to.
 - **Aeon article log**: title, topic, your own summary, difficulty, and a
   word+meaning vocab list per article — which rolls up into a searchable
   Vocab Bank tab over time.
-- **Mock test analyzer**: log full SimCAT/Cracku/IMS results (sectional
+- **Mock test analyzer & insights**: log full SimCAT/Cracku/IMS results (sectional
   attempted/correct/time + overall score/percentile), with percentile and
-  score trend charts and a results table, filterable by source.
+  score trend charts, and a results table, filterable by source. Features a new **Insights & Performance Correlation** section:
+  - Tag mocks with success factors ("What went well") and obstacles ("What went wrong").
+  - Dynamically analyze behavior frequencies based on a custom target percentile threshold.
+  - Automatically detect performance blockers (accuracy penalties), over-attempting risks, and identify your make-or-break section.
 - **Mentor task board**: your mentor assigns tasks tagged to a section
   (e.g. "3 DILR sets on arrangements"); you check them off on the Today tab
   and contextually on that section's Log tab. Mentor manages the full board
