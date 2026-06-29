@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS, DIFFICULTY_OPTIONS } from '../constants';
 import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
@@ -37,13 +37,33 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
   const stats = computeStats(form);
-  const topicOptions = TOPIC_SUGGESTIONS[form.subsection] || [];
   const [definingIdx, setDefiningIdx] = useState(null);
 
   // Autosave form changes to sessionStorage
   useEffect(() => {
     safeStorage.setSessionItem(`quick_log_draft_${sectionKey}`, form);
   }, [form, sectionKey]);
+
+  const labelSuggestions = useMemo(() => {
+    const labels = new Set();
+    entries.forEach((e) => {
+      if (e.label && e.label.trim()) {
+        labels.add(e.label.trim());
+      }
+    });
+    return Array.from(labels).sort();
+  }, [entries]);
+
+  const topicOptions = useMemo(() => {
+    const opts = new Set(TOPIC_SUGGESTIONS[form.subsection] || []);
+    entries.forEach((e) => {
+      if (e.subsection === form.subsection && e.topic && e.topic.trim()) {
+        opts.add(e.topic.trim());
+      }
+    });
+    return Array.from(opts).sort();
+  }, [form.subsection, entries]);
+
   const isInvalid = form.attempted !== '' && form.correct !== '' && Number(form.correct) > Number(form.attempted);
 
   async function handleAutoDefine(idx, word) {
@@ -190,10 +210,14 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
         />
         <datalist id="quick-topics">{topicOptions.map((t) => <option key={t} value={t} />)}</datalist>
         <input
+          list="quick-labels"
           value={form.label}
           placeholder="Heading (e.g. Passage 1)"
           onChange={(e) => setForm({ ...form, label: e.target.value })}
         />
+        <datalist id="quick-labels">
+          {labelSuggestions.map((l) => <option key={l} value={l} />)}
+        </datalist>
         <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
           {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>

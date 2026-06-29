@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { safeStorage } from '../utils/storage';
 import { SECTIONS, TOPIC_SUGGESTIONS, SOURCES, MISTAKE_TAGS, POSITIVE_TAGS, DIFFICULTY_OPTIONS } from '../constants';
@@ -201,6 +201,16 @@ export default function EntryForm({ sectionKey, entries = [] }) {
     }
   }
 
+  const labelSuggestions = useMemo(() => {
+    const labels = new Set();
+    entries.forEach((e) => {
+      if (e.label && e.label.trim()) {
+        labels.add(e.label.trim());
+      }
+    });
+    return Array.from(labels).sort();
+  }, [entries]);
+
   return (
     <div className="entry-form-container">
       <AIScreenshotLog onAutofill={handleAutofill} />
@@ -222,6 +232,8 @@ export default function EntryForm({ sectionKey, entries = [] }) {
             onChange={(patch) => updateRow(row.key, patch)}
             onRemove={() => removeRow(row.key)}
             removable={rows.length > 1}
+            labelSuggestions={labelSuggestions}
+            allEntries={entries}
           />
         ))}
 
@@ -242,10 +254,20 @@ export default function EntryForm({ sectionKey, entries = [] }) {
   );
 }
 
-function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
+function RowCard({ row, index, sectionKey, onChange, onRemove, removable, labelSuggestions, allEntries }) {
   const cfg = SECTIONS[sectionKey];
   const stats = computeStats(row);
-  const topicOptions = TOPIC_SUGGESTIONS[row.subsection] || [];
+  
+  const topicOptions = useMemo(() => {
+    const opts = new Set(TOPIC_SUGGESTIONS[row.subsection] || []);
+    allEntries.forEach((e) => {
+      if (e.subsection === row.subsection && e.topic && e.topic.trim()) {
+        opts.add(e.topic.trim());
+      }
+    });
+    return Array.from(opts).sort();
+  }, [row.subsection, allEntries]);
+
   const listId = `topics-${row.key}`;
   const [definingIdx, setDefiningIdx] = useState(null);
   const isInvalid = row.attempted !== '' && row.correct !== '' && Number(row.correct) > Number(row.attempted);
@@ -312,10 +334,14 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable }) {
         <label>
           Label <span className="optional">(optional)</span>
           <input
+            list={`labels-${row.key}`}
             value={row.label}
             placeholder="Passage 1 / Set A"
             onChange={(e) => onChange({ label: e.target.value })}
           />
+          <datalist id={`labels-${row.key}`}>
+            {labelSuggestions.map((l) => <option key={l} value={l} />)}
+          </datalist>
         </label>
 
         <label>

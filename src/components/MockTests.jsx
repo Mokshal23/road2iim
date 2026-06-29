@@ -20,6 +20,17 @@ function blankSections() {
 export default function MockTests({ mocks, readOnly = false }) {
   const [sourceFilter, setSourceFilter] = useState('All');
   const filtered = sourceFilter === 'All' ? mocks : mocks.filter((m) => m.source === sourceFilter);
+  
+  const mockLabelSuggestions = useMemo(() => {
+    const labels = new Set();
+    mocks.forEach((m) => {
+      if (m.label && m.label.trim()) {
+        labels.add(m.label.trim());
+      }
+    });
+    return Array.from(labels).sort();
+  }, [mocks]);
+
   const chartData = useMemo(
     () => [...filtered].sort((a, b) => a.date.localeCompare(b.date)).map((m) => ({
       day: formatShort(m.date),
@@ -32,7 +43,7 @@ export default function MockTests({ mocks, readOnly = false }) {
 
   return (
     <div>
-      {!readOnly && <MockForm />}
+      {!readOnly && <MockForm mockLabelSuggestions={mockLabelSuggestions} />}
 
       <div className="card">
         <div className="card__head">
@@ -81,7 +92,7 @@ export default function MockTests({ mocks, readOnly = false }) {
   );
 }
 
-function MockForm() {
+function MockForm({ mockLabelSuggestions = [] }) {
   const [draft] = useState(() => safeStorage.getSessionItem('mock_form_draft') || {});
 
   const [date, setDate] = useState(draft.date || todayStr());
@@ -194,7 +205,12 @@ function MockForm() {
       <div className="row-card__grid">
         <label>Date<input type="date" max={todayStr()} value={date} onChange={(e) => setDate(e.target.value)} required /></label>
         <label>Source<select value={source} onChange={(e) => setSource(e.target.value)}>{MOCK_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-        <label>Label <span className="optional">(optional)</span><input value={label} placeholder="SimCAT 7" onChange={(e) => setLabel(e.target.value)} /></label>
+        <label>Label <span className="optional">(optional)</span>
+          <input list="mock-labels" value={label} placeholder="SimCAT 7" onChange={(e) => setLabel(e.target.value)} />
+          <datalist id="mock-labels">
+            {mockLabelSuggestions.map((l) => <option key={l} value={l} />)}
+          </datalist>
+        </label>
         <label>Overall percentile<input type="number" min="0" max="100" step="0.01" value={overallPercentile} onChange={(e) => setOverallPercentile(e.target.value)} required /></label>
         <label>Overall score<input type="number" step="0.01" value={overallScore} onChange={(e) => setOverallScore(e.target.value)} required /></label>
       </div>
