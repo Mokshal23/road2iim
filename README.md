@@ -95,6 +95,11 @@ links, exactly like the Google Sheet workflow you're used to.
   (e.g. "3 DILR sets on arrangements"); you check them off on the Today tab
   and contextually on that section's Log tab. Mentor manages the full board
   from their Tasks tab.
+- **Interactive Streak Drilldown**: Clicking on any day in the study streak heatmap opens an interactive popup summarizing all logged practice sessions, mock tests, and Aeon articles read on that day (including sectional metrics, reading speeds, notes, and tags).
+- **Auto-Saving Form Drafts**: Integrated sessionStorage persistence across all major forms (Aeon logs, Mock Test scorecards, Quick logs, and Detailed session logs) to prevent accidental data loss when switching tabs.
+- **Dynamic Field Auto-Suggestions**: Inputs for labels and custom topics now suggest values matching what you've logged in the past, making repetitive logging effortless.
+- **System Portal Helpdesk**: Added a technical support ticket tracker (`🐞` icon in the header) enabling students to raise system bug reports (like decimal time inputs) complete with auto-generated debug specs (OS, resolution, URL).
+- **Admin Portal Workspace**: Decoupled Mentor and Admin roles. Created a dedicated Admin Portal (`/admin` path) to let system administrators manage reported tickets, track system issues, and manage registered users and their account roles.
 
 ### Redeploying this update
 
