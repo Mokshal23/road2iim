@@ -240,7 +240,7 @@ export const AeonArticleWriteSchema = z.object({
   difficulty: z.enum(['Easy', 'Medium', 'Hard']).default('Medium'),
   vocab: z.array(VocabItemSchema).default([]),
   link: z.string().trim().default(''),
-  timeTaken: z.preprocess((val) => Number(val), z.number().int().nonnegative().default(0)),
+  timeTaken: z.preprocess((val) => Number(val), z.number().nonnegative().default(0)),
   wordCount: z.preprocess((val) => Number(val), z.number().int().nonnegative().default(0)),
   readingSpeed: z.preprocess((val) => Number(val), z.number().int().nonnegative().default(0)),
   content: z.string().trim().default(''),
