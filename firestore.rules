@@ -12,6 +12,11 @@ service cloud.firestore {
       return request.auth != null && exists(/databases/$(database)/documents/mentorships/$(request.auth.uid + '_' + studentId));
     }
 
+    // Helper function to check if the user is the admin
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // Scoped study collections
     match /entries/{id} {
       allow read: if request.auth != null && (!('studentId' in resource.data) || isOwner(resource.data.studentId) || isConnectedMentor(resource.data.studentId));
@@ -70,13 +75,21 @@ service cloud.firestore {
     // User profiles collection
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
     // Mentorship connections
     match /mentorships/{connId} {
       allow read: if request.auth != null && (request.auth.uid == resource.data.mentorId || request.auth.uid == resource.data.studentId);
       allow write: if request.auth != null && request.auth.uid == request.resource.data.mentorId;
+    }
+
+    // Portal Support Tickets collection
+    match /portalIssues/{id} {
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Legacy settings collection for migration
