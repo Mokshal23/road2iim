@@ -13,6 +13,7 @@ import HelpdeskModal from './components/HelpdeskModal';
 // Lazy load visual pages to optimize bundle chunking
 const Home = React.lazy(() => import('./pages/Home'));
 const Mentor = React.lazy(() => import('./pages/Mentor'));
+const AdminPortal = React.lazy(() => import('./pages/AdminPortal'));
 
 export default function App() {
   const { theme, toggle } = useTheme();
@@ -42,6 +43,12 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (role === 'admin' && activeTab === 'today') {
+      setActiveTab('tickets');
+    }
+  }, [role, activeTab, setActiveTab]);
+
   const authRequired = firebaseConfigured;
   const showNav = user && role && role !== 'unregistered';
   const tabs = role === 'student' ? [
@@ -51,13 +58,16 @@ export default function App() {
     { key: 'aeon', label: 'Aeon log' },
     { key: 'mocks', label: 'Mock tests' },
     { key: 'vocab', label: 'Vocab bank' },
-  ] : [
+  ] : role === 'mentor' ? [
     { key: 'today', label: 'Today' },
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'aeon', label: 'Aeon log' },
     { key: 'mocks', label: 'Mock tests' },
     { key: 'tasks', label: 'Tasks' },
     { key: 'vocab', label: 'Vocab bank' },
+  ] : [
+    { key: 'tickets', label: 'Support Tickets' },
+    { key: 'users', label: 'Registered Users' },
   ];
 
   let content;
@@ -100,7 +110,7 @@ export default function App() {
           )}
 
           <div className="app-header__actions">
-            {showNav && (
+            {showNav && role === 'student' && (
               <button 
                 className="icon-btn support-btn" 
                 onClick={() => setShowSupport(true)} 
@@ -126,13 +136,22 @@ export default function App() {
               <>
                 <Route path="/" element={<Home />} />
                 <Route path="/mentor" element={<Navigate to="/" replace />} />
+                <Route path="/admin" element={<Navigate to="/" replace />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
-            ) : (
+            ) : role === 'mentor' ? (
               <>
                 <Route path="/mentor" element={<Mentor />} />
                 <Route path="/" element={<Navigate to="/mentor" replace />} />
+                <Route path="/admin" element={<Navigate to="/mentor" replace />} />
                 <Route path="*" element={<Navigate to="/mentor" replace />} />
+              </>
+            ) : (
+              <>
+                <Route path="/admin" element={<AdminPortal />} />
+                <Route path="/" element={<Navigate to="/admin" replace />} />
+                <Route path="/mentor" element={<Navigate to="/admin" replace />} />
+                <Route path="*" element={<Navigate to="/admin" replace />} />
               </>
             )}
           </Routes>
@@ -223,6 +242,27 @@ function RoleSelection({ onSelect }) {
               <strong style={{ display: 'block', fontSize: '14px' }}>Mentor</strong>
               <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px', lineHeight: 1.3 }}>
                 Observe linked student progress, assign tasks, and leave feedback comments.
+              </span>
+            </div>
+          </label>
+
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '14px',
+            background: 'var(--surface)',
+            border: role === 'admin' ? '2px solid var(--blue)' : '1px solid var(--border)',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'all 0.15s'
+          }}>
+            <input type="radio" name="role" value="admin" checked={role === 'admin'} onChange={() => setRole('admin')} />
+            <div>
+              <strong style={{ display: 'block', fontSize: '14px' }}>Admin</strong>
+              <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px', lineHeight: 1.3 }}>
+                Access the developer console, manage reported bugs, support tickets, and view user profiles.
               </span>
             </div>
           </label>

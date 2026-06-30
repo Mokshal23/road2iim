@@ -12,8 +12,8 @@ export function usePortalIssues(userId, role) {
     if (!userId) return;
 
     let q;
-    if (role === 'mentor' || role === 'admin') {
-      // Mentors see all reported portal issues
+    if (role === 'admin') {
+      // Admins see all reported portal issues
       q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
     } else {
       // Students only see their own reported issues
@@ -62,4 +62,32 @@ export async function updatePortalIssueStatus(id, status) {
 
 export async function deletePortalIssue(id) {
   await deleteDoc(doc(db, COLLECTION, id));
+}
+
+export function useAllUsers() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'users'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setUsers(list);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error fetching all users:', err);
+        setLoading(false);
+      }
+    );
+    return unsubscribe;
+  }, []);
+
+  return { users, loading };
+}
+
+export async function updateUserRole(userId, newRole) {
+  await updateDoc(doc(db, 'users', userId), { role: newRole });
 }
