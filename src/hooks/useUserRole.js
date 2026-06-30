@@ -40,6 +40,9 @@ export function useUserRole(user) {
 
   const registerRole = async (selectedRole) => {
     if (!user) return;
+    if (selectedRole === 'admin') {
+      throw new Error('Unauthorized: Admin role cannot be self-registered.');
+    }
     const userDocRef = doc(db, 'users', user.uid);
     await setDoc(userDocRef, {
       uid: user.uid,

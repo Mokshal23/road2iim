@@ -246,26 +246,6 @@ function RoleSelection({ onSelect }) {
             </div>
           </label>
 
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '14px',
-            background: 'var(--surface)',
-            border: role === 'admin' ? '2px solid var(--blue)' : '1px solid var(--border)',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            textAlign: 'left',
-            transition: 'all 0.15s'
-          }}>
-            <input type="radio" name="role" value="admin" checked={role === 'admin'} onChange={() => setRole('admin')} />
-            <div>
-              <strong style={{ display: 'block', fontSize: '14px' }}>Admin</strong>
-              <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px', lineHeight: 1.3 }}>
-                Access the developer console, manage reported bugs, support tickets, and view user profiles.
-              </span>
-            </div>
-          </label>
 
           <button type="submit" className="btn btn--primary" style={{ marginTop: '10px', padding: '12px', fontSize: '13.5px' }} disabled={!role || saving}>
             {saving ? 'Registering Account...' : 'Finish Setup ➔'}
