@@ -8,6 +8,7 @@ import { firebaseConfigured } from './firebase';
 import Toast from './components/Toast';
 import { GlobalErrorBoundary } from './components/ErrorBoundary';
 import { useAppStore } from './store/useAppStore';
+import HelpdeskModal from './components/HelpdeskModal';
 
 // Lazy load visual pages to optimize bundle chunking
 const Home = React.lazy(() => import('./pages/Home'));
@@ -18,6 +19,7 @@ export default function App() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, registerRole } = useUserRole(user);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showSupport, setShowSupport] = useState(false);
   const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
 
@@ -98,6 +100,17 @@ export default function App() {
           )}
 
           <div className="app-header__actions">
+            {showNav && (
+              <button 
+                className="icon-btn support-btn" 
+                onClick={() => setShowSupport(true)} 
+                title="Report Portal Issue" 
+                style={{ fontSize: '15px' }}
+                aria-label="Report portal issue"
+              >
+                🐞
+              </button>
+            )}
             <button className="icon-btn theme-toggle" onClick={toggle} aria-label="Toggle theme">
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
@@ -124,6 +137,16 @@ export default function App() {
             )}
           </Routes>
         </Suspense>
+        
+        {showSupport && (
+          <HelpdeskModal 
+            userId={user?.uid} 
+            userEmail={user?.email} 
+            role={role} 
+            onClose={() => setShowSupport(false)} 
+          />
+        )}
+        
         <Toast />
       </BrowserRouter>
     );
