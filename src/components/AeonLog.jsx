@@ -196,7 +196,7 @@ function AeonForm({ editArticle = null, onDone = null }) {
         <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
           Difficulty
           <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })} style={{ width: '100%' }}>
-            {DIFFICULTY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+            {AEON_DIFFICULTY.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
