@@ -5,6 +5,7 @@ import { SECTIONS, SOURCES, TOPIC_SUGGESTIONS, MISTAKE_TAGS, POSITIVE_TAGS, DIFF
 import { computeStats } from '../utils/calc';
 import { updateEntry } from '../hooks/useEntries';
 import { defineWordWithGemini } from '../utils/ai';
+import VoiceInput from './VoiceInput';
 
 export default function EditEntryModal({ entry, onClose }) {
   const [form, setForm] = useState({
@@ -124,15 +125,52 @@ export default function EditEntryModal({ entry, onClose }) {
               </select>
             </label>
           )}
-          <label>
+          <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
             Topic
-            <input list="edit-topics" value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} />
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+              <input list="edit-topics" value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+              <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, topic: val }))} />
+              </div>
+            </div>
             <datalist id="edit-topics">{topicOptions.map((t) => <option key={t} value={t} />)}</datalist>
           </label>
-          <label>Label<input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} /></label>
-          <label>Time taken (min)<input type="number" min="0" step="0.5" value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} /></label>
-          <label>Attempted<input type="number" min="0" value={form.attempted} onChange={(e) => setForm({ ...form, attempted: e.target.value })} /></label>
-          <label>Correct<input type="number" min="0" value={form.correct} onChange={(e) => setForm({ ...form, correct: e.target.value })} /></label>
+          <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            Label
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+              <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+              <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, label: val }))} />
+              </div>
+            </div>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            Time taken (min)
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+              <input type="number" min="0" step="0.5" value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+              <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+                <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, timeTaken: val }))} isNumeric />
+              </div>
+            </div>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            Attempted
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+              <input type="number" min="0" value={form.attempted} onChange={(e) => setForm({ ...form, attempted: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+              <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+                <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, attempted: val }))} isNumeric />
+              </div>
+            </div>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            Correct
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+              <input type="number" min="0" value={form.correct} onChange={(e) => setForm({ ...form, correct: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+              <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+                <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, correct: val }))} isNumeric />
+              </div>
+            </div>
+          </label>
           <label>
             Source
             <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
@@ -160,9 +198,14 @@ export default function EditEntryModal({ entry, onClose }) {
           </label>
         </div>
 
-        <label className="row-card__notes">
+        <label className="row-card__notes" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
           Notes
-          <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, notes: f.notes ? f.notes + ' ' + val : val }))} />
+            </div>
+          </div>
         </label>
 
         {entry.section === 'VARC' && (
