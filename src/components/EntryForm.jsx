@@ -455,7 +455,7 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable, labelS
             style={{ width: '100%', paddingRight: '36px', margin: 0 }}
           />
           <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
-            <VoiceInput onTranscript={(val) => onChange({ notes: val })} />
+            <VoiceInput onTranscript={(val) => onChange({ notes: row.notes ? row.notes + ' ' + val : val })} />
           </div>
         </div>
       </label>

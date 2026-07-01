@@ -292,7 +292,7 @@ function MockForm({ mockLabelSuggestions = [] }) {
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
           <textarea rows={2} value={notes} placeholder="What worked, what didn't, what to fix next mock" onChange={(e) => setNotes(e.target.value)} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
           <div style={{ position: 'absolute', right: '8px', bottom: '8px' }}>
-            <VoiceInput onTranscript={(val) => setNotes(val)} />
+            <VoiceInput onTranscript={(val) => setNotes(n => n ? n + ' ' + val : val)} />
           </div>
         </div>
       </label>

@@ -243,7 +243,7 @@ function AeonForm({ editArticle = null, onDone = null }) {
             style={{ width: '100%', paddingRight: '36px', margin: 0 }}
           />
           <div style={{ position: 'absolute', right: '8px', bottom: '8px' }}>
-            <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, summary: val }))} />
+            <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, summary: f.summary ? f.summary + ' ' + val : val }))} />
           </div>
         </div>
       </label>
