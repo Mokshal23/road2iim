@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 // Spellings to correct
 const CORRECTIONS = {
@@ -98,7 +98,7 @@ export function autocorrectText(text, isNumeric = false) {
   return result;
 }
 
-export async function transcribeAudioWithGemini(base64Audio, modelName, apiKey, isNumeric = false) {
+export async function transcribeAudioWithGemini(base64Audio, modelName, apiKey, mimeType, isNumeric = false) {
   const promptText = isNumeric
     ? "Transcribe the following spoken audio. Return ONLY a single number (integer or decimal) representing what was spoken (e.g. if the user says 'forty five', return '45'). If no number is heard, return empty."
     : "Transcribe the following spoken audio as text. Return ONLY the transcribed text. Correct any spelling or capitalization for standard CAT prep terms (e.g., correct 'dilr' to 'DILR', 'lrdi' to 'LRDI', 'varc' to 'VARC', 'qa' to 'QA', 'simcat' to 'SimCAT', 'ims' to 'IMS', 'cracku' to 'Cracku'). Do not add any conversational remarks.";
@@ -113,7 +113,7 @@ export async function transcribeAudioWithGemini(base64Audio, modelName, apiKey, 
         parts: [
           {
             inlineData: {
-              mimeType: 'audio/webm',
+              mimeType: mimeType || 'audio/webm',
               data: base64Audio
             }
           },
@@ -135,7 +135,7 @@ export async function transcribeAudioWithGemini(base64Audio, modelName, apiKey, 
   return text ? text.trim() : '';
 }
 
-export async function transcribeAudioWithGroqWhisper(base64Audio, modelName, apiKey) {
+export async function transcribeAudioWithGroqWhisper(base64Audio, modelName, apiKey, mimeType) {
   // Convert base64 back to Blob
   const byteCharacters = atob(base64Audio);
   const byteNumbers = new Array(byteCharacters.length);
@@ -143,7 +143,7 @@ export async function transcribeAudioWithGroqWhisper(base64Audio, modelName, api
     byteNumbers[i] = byteCharacters.charCodeAt(i);
   }
   const byteArray = new Uint8Array(byteNumbers);
-  const audioBlob = new Blob([byteArray], { type: 'audio/webm' });
+  const audioBlob = new Blob([byteArray], { type: mimeType || 'audio/webm' });
 
   const formData = new FormData();
   formData.append('file', audioBlob, 'audio.webm');
@@ -167,7 +167,7 @@ export async function transcribeAudioWithGroqWhisper(base64Audio, modelName, api
   return data.text || '';
 }
 
-export async function transcribeAudioWithFailover(base64Audio, isNumeric = false) {
+export async function transcribeAudioWithFailover(base64Audio, mimeType, isNumeric = false) {
   let lastError = null;
 
   const models = [
@@ -180,18 +180,19 @@ export async function transcribeAudioWithFailover(base64Audio, isNumeric = false
 
   for (const model of models) {
     try {
-      const apiKey = localStorage.getItem(`${model.provider}_api_key`);
-      if (!apiKey) {
+      const rawKey = localStorage.getItem(`${model.provider}_api_key`) || '';
+      const apiKey = rawKey.trim();
+      if (!apiKey || apiKey === 'null' || apiKey === 'undefined') {
         continue;
       }
 
       console.log(`Attempting audio transcription using: ${model.provider}/${model.name}`);
 
       if (model.provider === 'gemini') {
-        const transcript = await transcribeAudioWithGemini(base64Audio, model.name, apiKey, isNumeric);
+        const transcript = await transcribeAudioWithGemini(base64Audio, model.name, apiKey, mimeType, isNumeric);
         if (transcript) return transcript;
       } else if (model.provider === 'groq') {
-        const transcript = await transcribeAudioWithGroqWhisper(base64Audio, model.name, apiKey);
+        const transcript = await transcribeAudioWithGroqWhisper(base64Audio, model.name, apiKey, mimeType);
         if (transcript) {
           return autocorrectText(transcript, isNumeric);
         }
@@ -210,6 +211,27 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
   const [loading, setLoading] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const recordingTimeoutRef = useRef(null);
+  const activeStreamRef = useRef(null);
+
+  // Unmount cleanup to stop active streams and clear timeouts
+  useEffect(() => {
+    return () => {
+      if (recordingTimeoutRef.current) {
+        clearTimeout(recordingTimeoutRef.current);
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          // ignore already stopped state errors
+        }
+      }
+      if (activeStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   const toggleRecording = async () => {
     if (listening) {
@@ -217,15 +239,20 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
       return;
     }
 
-    const geminiKey = localStorage.getItem('gemini_api_key');
-    const groqKey = localStorage.getItem('groq_api_key');
-    if (!geminiKey && !groqKey) {
+    const geminiKey = (localStorage.getItem('gemini_api_key') || '').trim();
+    const groqKey = (localStorage.getItem('groq_api_key') || '').trim();
+    
+    const hasGemini = geminiKey && geminiKey !== 'null' && geminiKey !== 'undefined';
+    const hasGroq = groqKey && groqKey !== 'null' && groqKey !== 'undefined';
+
+    if (!hasGemini && !hasGroq) {
       runSpeechRecognition();
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      activeStreamRef.current = stream;
       audioChunksRef.current = [];
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -237,9 +264,15 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
       };
 
       mediaRecorder.onstop = async () => {
+        if (recordingTimeoutRef.current) {
+          clearTimeout(recordingTimeoutRef.current);
+        }
+        
+        // Stop audio track capture to turn off browser microphone active dot
         stream.getTracks().forEach(track => track.stop());
+        activeStreamRef.current = null;
 
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
         if (audioBlob.size < 100) return;
 
         setLoading(true);
@@ -249,7 +282,7 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
           reader.onloadend = async () => {
             const base64data = reader.result.split(',')[1];
             try {
-              const transcript = await transcribeAudioWithFailover(base64data, isNumeric);
+              const transcript = await transcribeAudioWithFailover(base64data, audioBlob.type, isNumeric);
               if (transcript) {
                 onTranscript(transcript);
               }
@@ -269,6 +302,12 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
 
       mediaRecorder.start();
       setListening(true);
+
+      // Auto-stop recording after 30 seconds to prevent infinite recording
+      recordingTimeoutRef.current = setTimeout(() => {
+        stopRecording();
+      }, 30000);
+
     } catch (err) {
       console.error('Failed to access microphone:', err);
       alert('Failed to access microphone. Please check browser microphone permissions and try again.');
@@ -276,8 +315,15 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
   };
 
   const stopRecording = () => {
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        // ignore already stopped state errors
+      }
     }
     setListening(false);
   };
