@@ -98,15 +98,12 @@ export function autocorrectText(text, isNumeric = false) {
   return result;
 }
 
-export async function transcribeAudioWithGemini(base64Audio, apiKey, isNumeric = false) {
-  if (!apiKey) {
-    throw new Error('API Key is missing');
-  }
+export async function transcribeAudioWithGemini(base64Audio, modelName, apiKey, isNumeric = false) {
   const promptText = isNumeric
     ? "Transcribe the following spoken audio. Return ONLY a single number (integer or decimal) representing what was spoken (e.g. if the user says 'forty five', return '45'). If no number is heard, return empty."
     : "Transcribe the following spoken audio as text. Return ONLY the transcribed text. Correct any spelling or capitalization for standard CAT prep terms (e.g., correct 'dilr' to 'DILR', 'lrdi' to 'LRDI', 'varc' to 'VARC', 'qa' to 'QA', 'simcat' to 'SimCAT', 'ims' to 'IMS', 'cracku' to 'Cracku'). Do not add any conversational remarks.";
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -130,12 +127,82 @@ export async function transcribeAudioWithGemini(base64Audio, apiKey, isNumeric =
 
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(err?.error?.message || 'Gemini API call failed.');
+    throw new Error(err?.error?.message || `Gemini API call failed for ${modelName}`);
   }
 
   const data = await response.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   return text ? text.trim() : '';
+}
+
+export async function transcribeAudioWithGroqWhisper(base64Audio, modelName, apiKey) {
+  // Convert base64 back to Blob
+  const byteCharacters = atob(base64Audio);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const audioBlob = new Blob([byteArray], { type: 'audio/webm' });
+
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'audio.webm');
+  formData.append('model', modelName);
+  formData.append('language', 'en');
+
+  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err?.error?.message || `Groq Whisper API call failed for ${modelName}`);
+  }
+
+  const data = await response.json();
+  return data.text || '';
+}
+
+export async function transcribeAudioWithFailover(base64Audio, isNumeric = false) {
+  let lastError = null;
+
+  const models = [
+    { provider: 'gemini', name: 'gemini-2.5-flash' },
+    { provider: 'gemini', name: 'gemini-2.0-flash' },
+    { provider: 'gemini', name: 'gemini-1.5-flash' },
+    { provider: 'groq', name: 'whisper-large-v3-turbo' },
+    { provider: 'groq', name: 'whisper-large-v3' }
+  ];
+
+  for (const model of models) {
+    try {
+      const apiKey = localStorage.getItem(`${model.provider}_api_key`);
+      if (!apiKey) {
+        continue;
+      }
+
+      console.log(`Attempting audio transcription using: ${model.provider}/${model.name}`);
+
+      if (model.provider === 'gemini') {
+        const transcript = await transcribeAudioWithGemini(base64Audio, model.name, apiKey, isNumeric);
+        if (transcript) return transcript;
+      } else if (model.provider === 'groq') {
+        const transcript = await transcribeAudioWithGroqWhisper(base64Audio, model.name, apiKey);
+        if (transcript) {
+          return autocorrectText(transcript, isNumeric);
+        }
+      }
+    } catch (err) {
+      console.warn(`Model ${model.provider}/${model.name} failed:`, err.message || err);
+      lastError = err;
+    }
+  }
+
+  throw new Error(lastError?.message || 'All dictation fallback models failed.');
 }
 
 export default function VoiceInput({ onTranscript, isNumeric = false }) {
@@ -145,21 +212,18 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
   const audioChunksRef = useRef([]);
 
   const toggleRecording = async () => {
-    // Check if we are already listening/recording
     if (listening) {
       stopRecording();
       return;
     }
 
-    // Check if we have a Gemini API key for fallback transcription
-    const apiKey = localStorage.getItem('gemini_api_key');
-    if (!apiKey) {
-      // Fallback: If no API key is set, try standard browser SpeechRecognition
+    const geminiKey = localStorage.getItem('gemini_api_key');
+    const groqKey = localStorage.getItem('groq_api_key');
+    if (!geminiKey && !groqKey) {
       runSpeechRecognition();
       return;
     }
 
-    // Default: Use high-fidelity Gemini Audio Recording
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
@@ -173,11 +237,10 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
       };
 
       mediaRecorder.onstop = async () => {
-        // Stop all audio tracks to release the microphone lock
         stream.getTracks().forEach(track => track.stop());
 
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        if (audioBlob.size < 100) return; // ignore tiny clicks
+        if (audioBlob.size < 100) return;
 
         setLoading(true);
         try {
@@ -186,14 +249,13 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
           reader.onloadend = async () => {
             const base64data = reader.result.split(',')[1];
             try {
-              const transcript = await transcribeAudioWithGemini(base64data, apiKey, isNumeric);
+              const transcript = await transcribeAudioWithFailover(base64data, isNumeric);
               if (transcript) {
                 onTranscript(transcript);
               }
             } catch (err) {
-              console.error('Gemini dictation error:', err);
-              alert(`Gemini API transcribing failed: ${err.message}. Trying browser speech engine...`);
-              // fallback to browser SpeechRecognition if Gemini failed
+              console.error('Audio transcription failover error:', err);
+              alert(`AI transcribing failed: ${err.message}. Trying browser speech engine...`);
               runSpeechRecognition();
             } finally {
               setLoading(false);
@@ -223,7 +285,7 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
   const runSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in this browser and no Gemini API key was found for dictation.");
+      alert("Speech recognition is not supported in this browser and no API keys were found for dictation.");
       return;
     }
 
@@ -249,7 +311,7 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
       } else if (err.error === 'no-speech') {
         alert('No speech detected. Please try again.');
       } else {
-        alert('Browser Speech Recognition failed. Please save your Gemini API Key in the AI Coach box (Today tab) for a reliable voice dictation fallback.');
+        alert('Browser Speech Recognition failed. Please save your Gemini or Groq API Key on the Today tab for a robust dictation fallback.');
       }
       setListening(false);
     };
