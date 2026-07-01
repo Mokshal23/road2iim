@@ -140,9 +140,15 @@ function DayDetailsModal({ date, entries, aeonArticles, mocks, onClose }) {
                           <strong style={{ fontSize: '13px', color: 'var(--text)' }}>{e.subsection}</strong>
                           <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '8px', background: 'var(--surface)', padding: '2px 6px', borderRadius: '4px' }}>{e.topic}</span>
                         </div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: e.accuracy >= 75 ? 'var(--success)' : 'var(--danger)' }}>
-                          {e.correct}/{e.attempted} ({e.accuracy}%)
-                        </span>
+                        {e.isConceptLog || e.accuracy === null ? (
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--surface)', padding: '2px 8px', borderRadius: '4px' }}>
+                            📖 Concept Study
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: e.accuracy >= 75 ? 'var(--success)' : 'var(--danger)' }}>
+                            {e.correct}/{e.attempted} ({e.accuracy}%)
+                          </span>
+                        )}
                       </div>
                       
                       <div style={{ display: 'flex', gap: '15px', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>

@@ -14,6 +14,8 @@ export default function WeekOverWeek({ entries, anchorDate, sectionKey }) {
 
   const cur = aggregate(thisWeekEntries);
   const prev = aggregate(lastWeekEntries);
+  const curHasAttempts = thisWeekEntries.some((e) => (Number(e.attempted) || 0) > 0);
+  const prevHasAttempts = lastWeekEntries.some((e) => (Number(e.attempted) || 0) > 0);
   const hasCur = thisWeekEntries.length > 0;
   const hasPrev = lastWeekEntries.length > 0;
 
@@ -22,22 +24,24 @@ export default function WeekOverWeek({ entries, anchorDate, sectionKey }) {
       <h3>This week vs last week</h3>
       <div className="wow-card" style={{ borderColor: section.color }}>
         <h4 style={{ color: section.color }}>{section.label}</h4>
-        <WowRow label="Accuracy" cur={hasCur ? cur.accuracy : null} prev={hasPrev ? prev.accuracy : null} suffix="%" />
-        <WowRow label="Marks/min" cur={hasCur ? cur.marksPerMinute : null} prev={hasPrev ? prev.marksPerMinute : null} />
-        <WowRow label="Marks lost" cur={hasCur ? (cur.marksLost ?? 0) : null} prev={hasPrev ? (prev.marksLost ?? 0) : null} higherIsBetter={false} />
+        <WowRow label="Accuracy" cur={curHasAttempts ? cur.accuracy : null} prev={prevHasAttempts ? prev.accuracy : null} suffix="%" />
+        <WowRow label="Marks/min" cur={curHasAttempts ? cur.marksPerMinute : null} prev={prevHasAttempts ? prev.marksPerMinute : null} />
+        <WowRow label="Marks lost" cur={curHasAttempts ? (cur.marksLost ?? 0) : null} prev={prevHasAttempts ? (prev.marksLost ?? 0) : null} higherIsBetter={false} />
         <WowRow label="Questions attempted" cur={hasCur ? cur.attempted : null} prev={hasPrev ? prev.attempted : null} higherIsBetter={null} />
 
         {subsections.length > 1 && subsections.map((sub) => {
-          const subCur = aggregate(thisWeekEntries.filter((e) => e.subsection === sub));
-          const subPrev = aggregate(lastWeekEntries.filter((e) => e.subsection === sub));
-          const hasSubCur = thisWeekEntries.some((e) => e.subsection === sub);
-          const hasSubPrev = lastWeekEntries.some((e) => e.subsection === sub);
+          const subCurEntries = thisWeekEntries.filter((e) => e.subsection === sub);
+          const subPrevEntries = lastWeekEntries.filter((e) => e.subsection === sub);
+          const subCur = aggregate(subCurEntries);
+          const subPrev = aggregate(subPrevEntries);
+          const hasSubCurAttempts = subCurEntries.some((e) => (Number(e.attempted) || 0) > 0);
+          const hasSubPrevAttempts = subPrevEntries.some((e) => (Number(e.attempted) || 0) > 0);
           return (
             <WowRow
               key={sub}
               label={`${sub} acc.`}
-              cur={hasSubCur ? subCur.accuracy : null}
-              prev={hasSubPrev ? subPrev.accuracy : null}
+              cur={hasSubCurAttempts ? subCur.accuracy : null}
+              prev={hasSubPrevAttempts ? subPrev.accuracy : null}
               suffix="%"
             />
           );

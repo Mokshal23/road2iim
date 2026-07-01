@@ -219,14 +219,14 @@ function getSevenDaySummary(entries, mocks, articles) {
       sessionsLogged: totalEntries,
       totalMinutes: totalTime,
       totalAttempted,
-      accuracy: `${overallAccuracy}%`
+      accuracy: totalAttempted > 0 ? `${overallAccuracy}%` : '—'
     },
     sections: Object.keys(sections).reduce((acc, key) => {
       const s = sections[key];
       acc[key] = {
         minutesSpent: s.time,
         questionsAttempted: s.att,
-        accuracy: s.att > 0 ? `${Math.round((s.corr / s.att) * 100)}%` : '0%'
+        accuracy: s.att > 0 ? `${Math.round((s.corr / s.att) * 100)}%` : '—'
       };
       return acc;
     }, {}),

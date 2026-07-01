@@ -467,11 +467,11 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable, labelS
       </div>
 
       <div className="row-card__stats">
-        <Stat label="Accuracy" value={`${stats.accuracy}%`} />
-        <Stat label="Marks" value={stats.marks} />
-        <Stat label="Lost" value={stats.marksLost} />
-        <Stat label="Marks/min" value={stats.marksPerMinute} />
-        <Stat label="Min/question" value={stats.timePerQuestion} />
+        <Stat label="Accuracy" value={stats.accuracy === null ? '—' : `${stats.accuracy}%`} />
+        <Stat label="Marks" value={stats.marks === null ? '—' : stats.marks} />
+        <Stat label="Lost" value={stats.marksLost === null ? '—' : stats.marksLost} />
+        <Stat label="Marks/min" value={stats.marksPerMinute === null ? '—' : stats.marksPerMinute} />
+        <Stat label="Min/question" value={stats.timePerQuestion === null ? '—' : stats.timePerQuestion} />
       </div>
     </div>
   );

@@ -207,7 +207,7 @@ function AIMistakeInsights({ entries, sectionKey }) {
         subsection: e.subsection,
         topic: e.topic,
         difficulty: e.difficulty,
-        accuracy: `${e.accuracy}%`,
+        accuracy: e.accuracy === null ? 'Concept study' : `${e.accuracy}%`,
         mistakeTags: e.mistakeTags || [],
         notes: e.notes || '',
       }));

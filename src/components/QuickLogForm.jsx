@@ -313,7 +313,9 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
       )}
 
       <div className="quick-log__footer">
-        <span className="quick-log__stats">{stats.accuracy}% acc · {stats.marksPerMinute} mpm · {stats.marksLost} lost</span>
+        <span className="quick-log__stats">
+          {stats.accuracy === null ? '📖 Concept study log' : `${stats.accuracy}% acc · ${stats.marksPerMinute} mpm · ${stats.marksLost} lost`}
+        </span>
         <button type="submit" className="btn btn--primary" disabled={saving}>{saving ? 'Saving…' : 'Save & log next'}</button>
       </div>
       {status && <div className={`status status--${status.type}`}>{status.msg}</div>}

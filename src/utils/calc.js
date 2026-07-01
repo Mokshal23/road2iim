@@ -3,20 +3,36 @@
 // negative marking, so each entry can toggle it off.
 
 export function computeStats({ attempted, correct, timeTaken, negativeMarking }) {
-  const att = Number(attempted) || 0;
-  const cor = Math.min(Number(correct) || 0, att);
-  const wrong = Math.max(att - cor, 0);
+  const att = attempted !== '' && attempted !== undefined && attempted !== null ? Number(attempted) : null;
+  const cor = correct !== '' && correct !== undefined && correct !== null ? Number(correct) : null;
   const time = Number(timeTaken) || 0;
 
-  const accuracy = att > 0 ? (cor / att) * 100 : 0;
+  if (att === null || att === 0) {
+    return {
+      attempted: 0,
+      correct: 0,
+      wrong: 0,
+      timeTaken: time,
+      accuracy: null,
+      marks: null,
+      marksLost: null,
+      marksPerMinute: null,
+      timePerQuestion: null,
+      isConceptLog: true,
+    };
+  }
+
+  const actualCor = Math.min(cor || 0, att);
+  const wrong = Math.max(att - actualCor, 0);
+  const accuracy = (actualCor / att) * 100;
   const marksLost = negativeMarking ? wrong * 1 : 0;
-  const marks = negativeMarking ? cor * 3 - wrong * 1 : cor * 3;
+  const marks = negativeMarking ? actualCor * 3 - wrong * 1 : actualCor * 3;
   const marksPerMinute = time > 0 ? marks / time : 0;
-  const timePerQuestion = att > 0 ? time / att : 0;
+  const timePerQuestion = time / att;
 
   return {
     attempted: att,
-    correct: cor,
+    correct: actualCor,
     wrong,
     timeTaken: time,
     accuracy: round(accuracy),
@@ -24,30 +40,39 @@ export function computeStats({ attempted, correct, timeTaken, negativeMarking })
     marksLost: round(marksLost),
     marksPerMinute: round(marksPerMinute),
     timePerQuestion: round(timePerQuestion),
+    isConceptLog: false,
   };
 }
 
 export function round(n, dp = 2) {
+  if (n === null || n === undefined) return null;
   const f = 10 ** dp;
   return Math.round((n + Number.EPSILON) * f) / f;
 }
 
 export function aggregate(entries) {
-  const att = sum(entries, 'attempted');
-  const cor = sum(entries, 'correct');
-  const wrong = sum(entries, 'wrong');
-  const time = sum(entries, 'timeTaken');
-  const marks = sum(entries, 'marks');
-  const marksLost = sum(entries, 'marksLost');
+  const validEntries = (entries || []).filter(e => (Number(e.attempted) || 0) > 0);
+  const att = sum(validEntries, 'attempted');
+  const cor = sum(validEntries, 'correct');
+  const wrong = sum(validEntries, 'wrong');
+  const marks = sum(validEntries, 'marks');
+  const marksLost = sum(validEntries, 'marksLost');
+
+  // Total study time includes ALL logs (concepts + practice)
+  const totalTime = sum(entries, 'timeTaken');
+
+  // Practice-only study time
+  const practiceTime = sum(validEntries, 'timeTaken');
+
   return {
     attempted: att,
     correct: cor,
     wrong,
-    timeTaken: round(time),
+    timeTaken: round(totalTime),
     marks: round(marks),
     marksLost: round(marksLost),
-    accuracy: att > 0 ? round((cor / att) * 100) : 0,
-    marksPerMinute: time > 0 ? round(marks / time) : 0,
+    accuracy: att > 0 ? round((cor / att) * 100) : null,
+    marksPerMinute: practiceTime > 0 ? round(marks / practiceTime) : null,
   };
 }
 

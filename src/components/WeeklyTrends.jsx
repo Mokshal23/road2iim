@@ -21,26 +21,32 @@ export default function WeeklyTrends({ entries, anchorDate, onAnchorChange, sect
       const dayEntries = entries.filter((e) => e.date === day && e.subsection === sub);
       const agg = aggregate(dayEntries);
       const key = sub.replace(/\s+/g, '_');
-      row[`${key}_accuracy`] = dayEntries.length ? agg.accuracy : null;
-      row[`${key}_mpm`] = dayEntries.length ? agg.marksPerMinute : null;
+      const hasAttempted = dayEntries.some((e) => (Number(e.attempted) || 0) > 0);
+      row[`${key}_accuracy`] = hasAttempted ? agg.accuracy : null;
+      row[`${key}_mpm`] = hasAttempted ? agg.marksPerMinute : null;
     }
     return row;
   });
 
   const weekEntries = entries.filter((e) => e.date >= start && e.date <= end);
-  const summaries = subsections.map((sub, i) => ({
-    sub,
-    key: sub.replace(/\s+/g, '_'),
-    color: subColors[i],
-    agg: aggregate(weekEntries.filter((e) => e.subsection === sub)),
-    count: weekEntries.filter((e) => e.subsection === sub).length,
-  }));
+  const summaries = subsections.map((sub, i) => {
+    const subEntries = weekEntries.filter((e) => e.subsection === sub);
+    const hasAttempted = subEntries.some((e) => (Number(e.attempted) || 0) > 0);
+    return {
+      sub,
+      key: sub.replace(/\s+/g, '_'),
+      color: subColors[i],
+      agg: aggregate(subEntries),
+      count: subEntries.length,
+      hasAttempted,
+    };
+  });
 
   return (
     <div className="card">
-      <div className="card__head">
+      <div className="card-header" style={{ marginBottom: 15 }}>
         <h3>Weekly trends</h3>
-        <div className="week-nav">
+        <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn--ghost btn--sm" onClick={() => onAnchorChange(shiftWeek(anchorDate, -1))}>← Prev</button>
           <span>{formatPretty(start)} – {formatPretty(end)}</span>
           <button className="btn btn--ghost btn--sm" onClick={() => onAnchorChange(shiftWeek(anchorDate, 1))}>Next →</button>
@@ -51,8 +57,8 @@ export default function WeeklyTrends({ entries, anchorDate, onAnchorChange, sect
         {summaries.map((s) => (
           <div key={s.key} className="summary-pill" style={{ borderColor: s.color }}>
             <span className="summary-pill__label" style={{ color: s.color }}>{s.sub}</span>
-            <span className="summary-pill__stat">{s.count ? `${s.agg.accuracy}%` : '—'} acc</span>
-            <span className="summary-pill__stat">{s.count ? s.agg.marksPerMinute : '—'} mpm</span>
+            <span className="summary-pill__stat">{s.hasAttempted ? `${s.agg.accuracy}%` : '—'} acc</span>
+            <span className="summary-pill__stat">{s.hasAttempted ? s.agg.marksPerMinute : '—'} mpm</span>
             <span className="summary-pill__stat">{s.agg.timeTaken}m logged</span>
           </div>
         ))}

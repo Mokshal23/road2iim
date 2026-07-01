@@ -214,10 +214,10 @@ export default function EditEntryModal({ entry, onClose }) {
         </div>
 
         <div className="row-card__stats">
-          <div className="stat"><div className="stat__value">{stats.accuracy}%</div><div className="stat__label">Accuracy</div></div>
-          <div className="stat"><div className="stat__value">{stats.marks}</div><div className="stat__label">Marks</div></div>
-          <div className="stat"><div className="stat__value">{stats.marksLost}</div><div className="stat__label">Lost</div></div>
-          <div className="stat"><div className="stat__value">{stats.marksPerMinute}</div><div className="stat__label">Marks/min</div></div>
+          <div className="stat"><div className="stat__value">{stats.accuracy === null ? '—' : `${stats.accuracy}%`}</div><div className="stat__label">Accuracy</div></div>
+          <div className="stat"><div className="stat__value">{stats.marks === null ? '—' : stats.marks}</div><div className="stat__label">Marks</div></div>
+          <div className="stat"><div className="stat__value">{stats.marksLost === null ? '—' : stats.marksLost}</div><div className="stat__label">Lost</div></div>
+          <div className="stat"><div className="stat__value">{stats.marksPerMinute === null ? '—' : stats.marksPerMinute}</div><div className="stat__label">Marks/min</div></div>
         </div>
 
         {errorMsg && (

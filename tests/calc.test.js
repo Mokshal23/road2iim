@@ -49,10 +49,11 @@ describe('CAT Scoring and Metrics Calculations', () => {
       expect(stats.attempted).toBe(0);
       expect(stats.correct).toBe(0);
       expect(stats.wrong).toBe(0);
-      expect(stats.accuracy).toBe(0);
-      expect(stats.marks).toBe(0);
-      expect(stats.marksPerMinute).toBe(0);
-      expect(stats.timePerQuestion).toBe(0);
+      expect(stats.accuracy).toBe(null);
+      expect(stats.marks).toBe(null);
+      expect(stats.marksPerMinute).toBe(null);
+      expect(stats.timePerQuestion).toBe(null);
+      expect(stats.isConceptLog).toBe(true);
     });
 
     it('handles missing/undefined numeric inputs safely for concept-only logging', () => {
@@ -67,10 +68,11 @@ describe('CAT Scoring and Metrics Calculations', () => {
       expect(stats.correct).toBe(0);
       expect(stats.wrong).toBe(0);
       expect(stats.timeTaken).toBe(0);
-      expect(stats.accuracy).toBe(0);
-      expect(stats.marks).toBe(0);
-      expect(stats.marksPerMinute).toBe(0);
-      expect(stats.timePerQuestion).toBe(0);
+      expect(stats.accuracy).toBe(null);
+      expect(stats.marks).toBe(null);
+      expect(stats.marksPerMinute).toBe(null);
+      expect(stats.timePerQuestion).toBe(null);
+      expect(stats.isConceptLog).toBe(true);
     });
   });
 

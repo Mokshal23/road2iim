@@ -22,7 +22,7 @@ export default function SyllabusTracker({ entries = [], sectionKey }) {
             warning = 'Not started';
           } else if (agg.attempted < 20) {
             warning = 'Low attempts';
-          } else if (agg.accuracy < 65) {
+          } else if (agg.attempted > 0 && agg.accuracy < 65) {
             warning = 'Low accuracy';
           }
         }
@@ -31,7 +31,7 @@ export default function SyllabusTracker({ entries = [], sectionKey }) {
           topic,
           weight,
           attempts: agg.attempted,
-          accuracy: topicEntries.length ? agg.accuracy : null,
+          accuracy: agg.attempted > 0 ? agg.accuracy : null,
           warning,
         };
       });

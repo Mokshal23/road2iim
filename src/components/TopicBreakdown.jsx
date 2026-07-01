@@ -30,10 +30,10 @@ export default function TopicBreakdown({ entries, sectionKey }) {
                   </thead>
                   <tbody>
                     {rows.map((r) => (
-                      <tr key={r.topic} className={r.agg.accuracy < 50 ? 'row--weak' : ''}>
+                      <tr key={r.topic} className={r.agg.attempted > 0 && r.agg.accuracy < 50 ? 'row--weak' : ''}>
                         <td>{r.topic}</td>
-                        <td>{r.agg.accuracy}%</td>
-                        <td>{r.agg.marksPerMinute}</td>
+                        <td>{r.agg.attempted > 0 ? `${r.agg.accuracy}%` : '—'}</td>
+                        <td>{r.agg.attempted > 0 ? r.agg.marksPerMinute : '—'}</td>
                         <td>{r.agg.attempted}</td>
                       </tr>
                     ))}

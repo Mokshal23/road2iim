@@ -66,11 +66,11 @@ export default function DayDrilldown({ entries, readOnly = false, sectionKey }) 
                   <td>{e.topic}</td>
                   <td>{e.label || '—'}</td>
                   <td>{e.timeTaken}m</td>
-                  <td>{e.attempted}</td>
-                  <td>{e.correct}</td>
-                  <td>{e.accuracy}%</td>
-                  <td>{e.marksPerMinute}</td>
-                  <td>{e.marksLost ?? (e.negativeMarking ? (e.wrong || 0) * 1 : 0)}</td>
+                  <td>{e.attempted || '0'}</td>
+                  <td>{e.correct || '0'}</td>
+                  <td>{e.isConceptLog || e.accuracy === null ? '—' : `${e.accuracy}%`}</td>
+                  <td>{e.isConceptLog || e.marksPerMinute === null ? '—' : e.marksPerMinute}</td>
+                  <td>{e.isConceptLog || e.marksLost === null ? '—' : (e.marksLost ?? (e.negativeMarking ? (e.wrong || 0) * 1 : 0))}</td>
                   <td className="tags-cell tags-cell--good">{(e.goodTags || []).join(', ') || '—'}</td>
                   <td className="tags-cell">{(e.mistakeTags || []).join(', ') || '—'}</td>
                   <td>{e.source}</td>
