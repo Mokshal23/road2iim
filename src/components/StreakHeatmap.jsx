@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { computeStreaks, buildHeatmapGrid, levelFor } from '../utils/streak';
-import { formatPretty } from '../utils/dates';
+import { formatPretty, formatTime } from '../utils/dates';
 import Modal from './Modal';
 
 const LEVEL_COLORS = ['#24262d', '#3d3520', '#5e4a1f', '#a07a23', '#e8a33d'];
@@ -153,6 +153,7 @@ function DayDetailsModal({ date, entries, aeonArticles, mocks, onClose }) {
                       
                       <div style={{ display: 'flex', gap: '15px', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                         <span>⏱️ {e.timeTaken} mins</span>
+                        <span>🕒 Logged at: {formatTime(e.createdAt)}</span>
                         <span>📚 Source: {e.source}</span>
                         {e.label && <span>🏷️ {e.label}</span>}
                       </div>

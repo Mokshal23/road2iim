@@ -73,3 +73,21 @@ export function groupByDate(entries) {
   }
   return map;
 }
+
+export function formatTime(createdAtStr) {
+  if (!createdAtStr) return '—';
+  try {
+    // Handle Firestore timestamp objects or ISO strings
+    let d;
+    if (createdAtStr?.seconds) {
+      d = new Date(createdAtStr.seconds * 1000);
+    } else if (createdAtStr?.toDate) {
+      d = createdAtStr.toDate();
+    } else {
+      d = new Date(createdAtStr);
+    }
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  } catch (err) {
+    return '—';
+  }
+}

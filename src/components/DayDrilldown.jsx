@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { formatPretty, todayStr, groupByDate } from '../utils/dates';
+import { formatPretty, todayStr, groupByDate, formatTime } from '../utils/dates';
 import { aggregate } from '../utils/calc';
 import { deleteEntry, toggleEntryFlag } from '../hooks/useEntries';
 import EditEntryModal from './EditEntryModal';
@@ -51,8 +51,8 @@ export default function DayDrilldown({ entries, readOnly = false, sectionKey }) 
           <table className="day-table">
             <thead>
               <tr>
-                <th></th><th>Subsection</th><th>Topic</th><th>Label</th>
-                <th>Time</th><th>Att.</th><th>Cor.</th><th>Acc.</th><th>Mpm</th><th>Lost</th><th>Good</th><th>Mistakes</th><th>Source</th><th>Notes</th>
+                <th></th><th>Logged At</th><th>Subsection</th><th>Topic</th><th>Label</th>
+                <th>Duration</th><th>Att.</th><th>Cor.</th><th>Acc.</th><th>Mpm</th><th>Lost</th><th>Good</th><th>Mistakes</th><th>Source</th><th>Notes</th>
                 <th></th>
               </tr>
             </thead>
@@ -62,6 +62,7 @@ export default function DayDrilldown({ entries, readOnly = false, sectionKey }) 
                   <td>
                     <button className={`star-btn ${e.flagged ? 'star-btn--active' : ''}`} onClick={() => toggleEntryFlag(e)} aria-label="Flag for discussion">★</button>
                   </td>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: '11px', whiteSpace: 'nowrap' }}>{formatTime(e.createdAt)}</td>
                   <td>{e.subsection}</td>
                   <td>{e.topic}</td>
                   <td>{e.label || '—'}</td>

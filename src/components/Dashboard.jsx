@@ -13,6 +13,7 @@ import ReadingSpeedTrend from './ReadingSpeedTrend';
 import SyllabusTracker from './SyllabusTracker';
 import TopicMasteryQuadrants from './TopicMasteryQuadrants';
 import SlotFatigueTracker from './SlotFatigueTracker';
+import TimeOfDayAnalysis from './TimeOfDayAnalysis';
 import { SECTION_LIST } from '../constants';
 import { todayStr, weekRange } from '../utils/dates';
 import { CardErrorBoundary } from './ErrorBoundary';
@@ -80,6 +81,10 @@ export default function Dashboard({
 
       <CardErrorBoundary>
         <SlotFatigueTracker entries={safeEntries} sectionKey={sectionKey} selectedDate={anchorDate} />
+      </CardErrorBoundary>
+
+      <CardErrorBoundary>
+        <TimeOfDayAnalysis entries={sectionEntries} sectionKey={sectionKey} />
       </CardErrorBoundary>
 
       {sectionKey === 'VARC' && (
