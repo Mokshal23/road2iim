@@ -261,6 +261,15 @@ there's no moment where you're locked out of your own data.
 Once both accounts exist, share the relevant email/password with your
 mentor for the `/mentor` URL, and use your own for the main app.
 
+## What's new in v10 — Voice Dictation & Time-of-day Analytics
+
+**New features:**
+- **🎙️ Hands-Free Voice Input & Autocorrect Dictation**: Added a microphone icon next to every single input and notes field in all forms and edit modals (Quick Log, Detailed Practice log, Mock Test scorecard, Aeon Reading log). It features automatic abbreviation correction (DILR, VARC, SimCAT) and translates spoken text numbers (e.g. *"forty-five"*, *"one point five"*) into digits.
+- **🤖 Multi-Model Dictation Fallback Chain**: Bypasses browser-level speech blocks (e.g. Brave browser shields) by capturing audio locally and utilizing client-side API transcription. Cascades automatically through `gemini-2.5-flash` $\rightarrow$ `gemini-2.0-flash` $\rightarrow$ `gemini-1.5-flash` $\rightarrow$ Groq `whisper-large-v3-turbo` $\rightarrow$ Groq `whisper-large-v3` based on configured keys.
+- **🕒 Log Time Audits**: Renamed the duration column from `Time` to `Duration` and added a new `Logged At` column to the day logs table and study heatmap modal popup, showing exactly what time you studied.
+- **📊 Time-of-day Performance Analysis**: Groups all your historic practice logs into Morning, Afternoon, Evening, and Night time slots, graphs your accuracy vs. time of day, and outputs automated coaching recommendations to identify if you underperform at night.
+- **⏰ 6:00 AM Logical Day boundary**: Shifted the date boundary to 6:00 AM so midnight-oil study sessions logged before 6:00 AM count towards the previous logical calendar date.
+
 ## Notes
 
 - All scoring assumes CAT's standard +3 / −1 marking; uncheck "Negative

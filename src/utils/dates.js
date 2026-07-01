@@ -81,7 +81,7 @@ export function formatTime(createdAtStr) {
     let d;
     if (createdAtStr?.seconds) {
       d = new Date(createdAtStr.seconds * 1000);
-    } else if (createdAtStr?.toDate) {
+    } else if (createdAtStr?.toDate && typeof createdAtStr.toDate === 'function') {
       d = createdAtStr.toDate();
     } else {
       d = new Date(createdAtStr);

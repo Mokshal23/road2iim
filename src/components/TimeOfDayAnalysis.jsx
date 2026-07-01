@@ -85,61 +85,95 @@ export default function TimeOfDayAnalysis({ entries = [], sectionKey }) {
 
   if (!hasAnyData) {
     return (
-      <div className="card time-of-day-analysis" style={{ marginTop: '24px' }}>
-        <h3>🕒 Time-of-day Performance Analysis</h3>
-        <p className="insight">Correlates your accuracy and speed (marks/min) with the system timestamp of when you logged the session.</p>
-        <p className="empty" style={{ margin: '20px 0 0 0' }}>No practice logs with attempted questions found yet.</p>
+      <div className="card time-of-day-analysis ai-card" style={{ marginTop: '24px' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🕒 Time-of-day Performance Analysis</h3>
+        <p className="insight" style={{ color: 'var(--text-secondary)' }}>Correlates your accuracy and speed (marks/min) with the system timestamp of when you logged the session.</p>
+        <p className="empty" style={{ margin: '20px 0 0 0', color: 'var(--text-secondary)' }}>No practice logs with attempted questions found yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="card time-of-day-analysis" style={{ marginTop: '24px' }}>
-      <h3>🕒 Time-of-day Performance Analysis</h3>
-      <p className="insight">Correlates your accuracy and speed (marks/min) with the system timestamp of when you logged the session.</p>
+    <div className="card time-of-day-analysis ai-card" style={{ marginTop: '24px', padding: '24px' }}>
+      <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600 }}>🕒 Time-of-day Performance Analysis</h3>
+      <p className="insight" style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Correlates your accuracy and speed (marks/min) with the system timestamp of when you logged the session.</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginTop: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
         <div>
-          <table className="day-table">
-            <thead>
-              <tr>
-                <th>Time Slot</th>
-                <th>Sessions</th>
-                <th>Avg. Accuracy</th>
-                <th>Avg. Speed</th>
-                <th>Total Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((row) => (
-                <tr key={row.name}>
-                  <td style={{ fontWeight: 500 }}>{row.name}</td>
-                  <td>{row.count} sets</td>
-                  <td style={{ fontWeight: 600, color: row.count ? (row.accuracy >= 70 ? 'var(--success)' : 'var(--danger)') : 'inherit' }}>
-                    {row.count ? `${row.accuracy}%` : '—'}
-                  </td>
-                  <td>{row.count ? `${row.mpm} mpm` : '—'}</td>
-                  <td>{row.count ? `${row.timeTaken}m` : '—'}</td>
+          <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <table className="day-table" style={{ margin: 0, width: '100%' }}>
+              <thead>
+                <tr style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
+                  <th style={{ padding: '12px 16px' }}>Time Slot</th>
+                  <th>Sessions</th>
+                  <th>Avg. Accuracy</th>
+                  <th>Avg. Speed</th>
+                  <th style={{ paddingRight: '16px' }}>Total Time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="insight" style={{ marginTop: '16px', background: 'var(--surface)', padding: '12px', borderRadius: '8px', borderLeft: '3px solid var(--accent)' }}>
-            💡 <strong>Strategic Insight</strong>: {insight}
-          </p>
+              </thead>
+              <tbody>
+                {data.map((row) => (
+                  <tr key={row.name} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
+                    <td style={{ fontWeight: 500, padding: '12px 16px' }}>{row.name}</td>
+                    <td>{row.count} sets</td>
+                    <td style={{ fontWeight: 600, color: row.count ? (row.accuracy >= 70 ? 'var(--success)' : 'var(--danger)') : 'inherit' }}>
+                      {row.count ? `${row.accuracy}%` : '—'}
+                    </td>
+                    <td>{row.count ? `${row.mpm} mpm` : '—'}</td>
+                    <td style={{ paddingRight: '16px' }}>{row.count ? `${row.timeTaken}m` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{
+            marginTop: '20px',
+            background: 'linear-gradient(90deg, rgba(74, 144, 226, 0.08) 0%, rgba(74, 144, 226, 0.01) 100%)',
+            padding: '16px',
+            borderRadius: '10px',
+            borderLeft: '4px solid var(--accent)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '16px', lineHeight: 1 }}>💡</span>
+            <div style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text)' }}>
+              <strong>Strategic Insight</strong>: {insight}
+            </div>
+          </div>
         </div>
 
-        <div style={{ height: '240px', background: 'var(--surface)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.filter(d => d.count > 0)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="shortName" stroke="var(--text-secondary)" style={{ fontSize: '11px' }} />
-              <YAxis stroke="var(--text-secondary)" domain={[0, 100]} style={{ fontSize: '11px' }} />
+        <div style={{
+          height: '100%',
+          minHeight: '260px',
+          background: 'var(--surface-raised)',
+          padding: '20px 16px 12px 16px',
+          borderRadius: '12px',
+          border: '1px solid var(--border)',
+          boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center'
+        }}>
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={data.filter(d => d.count > 0)} margin={{ top: 10, right: 10, left: -24, bottom: 0 }}>
+              <defs>
+                <linearGradient id="accuracyGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.95}/>
+                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.35}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" />
+              <XAxis dataKey="shortName" stroke="var(--text-secondary)" fontSize={11} tickLine={false} />
+              <YAxis stroke="var(--text-secondary)" domain={[0, 100]} fontSize={11} tickLine={false} />
               <Tooltip
-                contentStyle={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: '6px' }}
-                labelStyle={{ fontWeight: 'bold', color: 'var(--text)' }}
+                contentStyle={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}
+                itemStyle={{ color: 'var(--text)' }}
+                labelStyle={{ fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '4px' }}
               />
-              <Bar dataKey="accuracy" name="Accuracy (%)" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="accuracy" name="Accuracy (%)" fill="url(#accuracyGrad)" radius={[6, 6, 0, 0]} barSize={32} />
             </BarChart>
           </ResponsiveContainer>
         </div>
