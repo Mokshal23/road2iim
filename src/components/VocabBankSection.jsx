@@ -5,6 +5,7 @@ import { updateAeonArticleFields } from '../hooks/useAeonArticles';
 import { defineWordWithGemini, generateDailyVocabSuggestions } from '../utils/ai';
 import Modal from './Modal';
 import { useAppStore } from '../store/useAppStore';
+import { todayStr } from '../utils/dates';
 
 function speakWord(word) {
   if ('speechSynthesis' in window) {
@@ -31,7 +32,7 @@ export default function VocabBankSection({ articles = [], entries = [], vocabLis
 
   // AI Recommendation States
   const [recommendations, setRecommendations] = useState(() => {
-    const today = new Date().toISOString().substring(0, 10);
+    const today = todayStr();
     const cached = localStorage.getItem(`daily_vocab_recommendations_${today}`);
     if (cached) {
       try {
@@ -120,7 +121,7 @@ export default function VocabBankSection({ articles = [], entries = [], vocabLis
 
     const fetchSuggestions = async () => {
       setLoadingRecs(true);
-      const today = new Date().toISOString().substring(0, 10);
+      const today = todayStr();
       const cacheKey = `daily_vocab_recommendations_${today}`;
       try {
         const existingWordStrings = words.map(w => w.word.toLowerCase());

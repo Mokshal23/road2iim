@@ -1,5 +1,15 @@
+export function getLogicalDate(d = new Date()) {
+  const dt = new Date(d);
+  const hrs = dt.getHours();
+  // If between 12:00 AM (midnight) and 5:59 AM, shift back by 1 day
+  if (hrs < 6) {
+    dt.setDate(dt.getDate() - 1);
+  }
+  return dt;
+}
+
 export function todayStr() {
-  return toDateStr(new Date());
+  return toDateStr(getLogicalDate(new Date()));
 }
 
 export function toDateStr(d) {
