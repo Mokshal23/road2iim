@@ -130,7 +130,12 @@ export default function VoiceInput({ onTranscript, isNumeric = false }) {
       } else if (err.error === 'no-speech') {
         alert('No speech was detected. Please click the mic and try speaking again.');
       } else if (err.error === 'network') {
-        alert('Network error occurred during speech recognition. Please check your internet connection.');
+        const isBrave = navigator.brave !== undefined;
+        if (isBrave) {
+          alert("Dictation unavailable. It looks like you are using Brave. Brave disables Google's speech recognition engine by default. To enable it, please go to settings: brave://settings/system, turn on 'Use Google services for push messaging and speech recognition', restart your browser, and try again!");
+        } else {
+          alert('Network error occurred during speech recognition. Please check your internet connection.');
+        }
       } else {
         alert(`Speech recognition failed: ${err.error}. Please try again.`);
       }
