@@ -39,14 +39,13 @@ export default function SlotFatigueTracker({ entries = [], sectionKey, selectedD
       return (a.sessionSeq || 0) - (b.sessionSeq || 0);
     });
 
-    // Classify sorted entries into sequence order buckets based on their session sequence
-    sorted.forEach((e) => {
-      const seq = e.sessionSeq || 0;
-      if (seq === 0) bucketEntries['1st'].push(e);
-      else if (seq === 1) bucketEntries['2nd'].push(e);
-      else if (seq === 2) bucketEntries['3rd'].push(e);
-      else if (seq === 3) bucketEntries['4th'].push(e);
-      else if (seq === 4) bucketEntries['5th'].push(e);
+    // Classify sorted entries into sequence order buckets based on their chronological order of the day
+    sorted.forEach((e, idx) => {
+      if (idx === 0) bucketEntries['1st'].push(e);
+      else if (idx === 1) bucketEntries['2nd'].push(e);
+      else if (idx === 2) bucketEntries['3rd'].push(e);
+      else if (idx === 3) bucketEntries['4th'].push(e);
+      else if (idx === 4) bucketEntries['5th'].push(e);
       else bucketEntries['6th+'].push(e);
     });
 
@@ -70,25 +69,50 @@ export default function SlotFatigueTracker({ entries = [], sectionKey, selectedD
 
   // Generate sequence-based coaching insight
   const insight = useMemo(() => {
-    const fresh = chartData[0]; // 1st Set
-    const lastIdx = chartData.findLastIndex((d) => d.count > 0);
+    const activeBuckets = chartData.filter((d) => d.count > 0);
+    const totalSets = activeBuckets.reduce((acc, b) => acc + b.count, 0);
 
-    if (lastIdx <= 0) {
-      return 'Practice multiple sessions on this day to see how your performance changes across sets.';
+    if (totalSets < 2) {
+      return 'Practice multiple sets across the day to see your chronological fatigue analysis.';
     }
 
-    const current = chartData[lastIdx];
-    const label = current.name;
+    // Determine early day average (from 1st and 2nd sets)
+    const earlySets = [];
+    const firstSet = chartData[0]; // 1st Set
+    const secondSet = chartData[1]; // 2nd Set
+    if (firstSet.count > 0) earlySets.push(firstSet);
+    if (secondSet.count > 0) earlySets.push(secondSet);
 
-    const accDelta = Math.round(current.accuracy - fresh.accuracy);
-    const mpmDelta = Math.round((current.mpm - fresh.mpm) * 100) / 100;
-    const timeDelta = Math.round((current.timeTaken - fresh.timeTaken) * 10) / 10;
+    // Determine late day average (from 5th and 6th+ sets)
+    const lateSets = [];
+    const fifthSet = chartData[4]; // 5th Set
+    const sixthSet = chartData[5]; // 6th+ Set
+    if (fifthSet.count > 0) lateSets.push(fifthSet);
+    if (sixthSet.count > 0) lateSets.push(sixthSet);
 
-    let text = `Comparing your ${label} to your 1st Set: `;
+    if (lateSets.length === 0) {
+      return `So far you have logged ${totalSets} sets today. Keep practicing to see how your performance holds up in your 5th and 6th+ sets of the day!`;
+    }
+
+    // Calculate averages
+    const getAvg = (arr, key) => arr.reduce((sum, item) => sum + item[key], 0) / arr.length;
+    const earlyAcc = getAvg(earlySets, 'accuracy');
+    const earlyMpm = getAvg(earlySets, 'mpm');
+    const earlyTime = getAvg(earlySets, 'timeTaken');
+
+    const lateAcc = getAvg(lateSets, 'accuracy');
+    const lateMpm = getAvg(lateSets, 'mpm');
+    const lateTime = getAvg(lateSets, 'timeTaken');
+
+    const accDelta = Math.round(lateAcc - earlyAcc);
+    const mpmDelta = Math.round((lateMpm - earlyMpm) * 100) / 100;
+    const timeDelta = Math.round((lateTime - earlyTime) * 10) / 10;
+
+    let text = `Comparing late attempts (5th & 6th+ sets) to your early attempts (1st & 2nd sets): `;
     const changes = [];
 
     if (Math.abs(accDelta) >= 5) {
-      changes.push(`accuracy ${accDelta > 0 ? 'improved' : 'dropped'} by ${Math.abs(accDelta)}%`);
+      changes.push(`accuracy ${accDelta > 0 ? 'increased' : 'dropped'} by ${Math.abs(accDelta)}%`);
     }
     if (Math.abs(mpmDelta) >= 0.2) {
       changes.push(`speed ${mpmDelta > 0 ? 'increased' : 'decreased'} by ${Math.abs(mpmDelta)} MPM`);
@@ -100,12 +124,12 @@ export default function SlotFatigueTracker({ entries = [], sectionKey, selectedD
     if (changes.length > 0) {
       text += `your ${changes.join(', ')}.`;
       if (accDelta < -5 || mpmDelta < -0.2 || timeDelta > 3) {
-        text += ' Fatigue drop-off detected. Consider taking a short break before this set.';
+        text += ' ⚠️ Fatigue drop-off detected. Your performance declines in your later sets of the day. Consider taking a 15-minute screen break or spacing your practice sets across morning and evening slots.';
       } else {
-        text += ' Consistent focus maintained.';
+        text += ' Consistent focus maintained throughout the day!';
       }
     } else {
-      text += 'your accuracy, speed, and time taken remained highly stable. Excellent consistency!';
+      text += 'your accuracy, speed, and time taken remained highly stable. Excellent stamina and consistency across the day!';
     }
 
     return text;
