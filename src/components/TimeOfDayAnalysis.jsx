@@ -132,7 +132,7 @@ export default function TimeOfDayAnalysis({ entries = [], sectionKey }) {
             background: 'linear-gradient(90deg, rgba(74, 144, 226, 0.08) 0%, rgba(74, 144, 226, 0.01) 100%)',
             padding: '16px',
             borderRadius: '10px',
-            borderLeft: '4px solid var(--accent)',
+            borderLeft: '4px solid var(--blue)',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
             display: 'flex',
             alignItems: 'flex-start',
@@ -161,8 +161,8 @@ export default function TimeOfDayAnalysis({ entries = [], sectionKey }) {
             <BarChart data={data.filter(d => d.count > 0)} margin={{ top: 10, right: 10, left: -24, bottom: 0 }}>
               <defs>
                 <linearGradient id="accuracyGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.95}/>
-                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.35}/>
+                  <stop offset="0%" stopColor="#4a75c7" stopOpacity={0.95}/>
+                  <stop offset="100%" stopColor="#4a75c7" stopOpacity={0.35}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" />
