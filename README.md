@@ -128,6 +128,14 @@ cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
 
+## What's new in v10 (Hands-Free Voice Dictation & Logical Day Bounds)
+
+- **🎙️ Hands-Free Voice Dictation**: Integrated a smart microphone button (`🎤`) next to input fields across all logging forms. Students can dictate study topics, heading labels, time taken, attempts, correct counts, summaries, and notes using the browser-native Web Speech API.
+- **✨ Local Auto-Correction & Text Digitization**: Implemented a client-side autocorrect layer:
+  - Automatically expands and fixes common acronyms (e.g. `qa` $\rightarrow$ `QA`, `varc` $\rightarrow$ `VARC`, `lrdi`/`dilr` $\rightarrow$ `LRDI`/`DILR`, `simcat` $\rightarrow$ `SimCAT`).
+  - Digitizes spoken numbers in numeric fields: converting spoken text (like *"forty five"* or *"twelve"*) into actual digits (`45` / `12`) to keep input seamless.
+- **🕒 6:00 AM Logical Day Shifting**: Adjusted the platform's day boundaries. A study day is defined from 6:00 AM to 5:59 AM the next day. If sessions are logged at 2:00 AM on July 2nd, they will be registered and tracked under **July 1st**, protecting your streaks and target accuracy from resetting prematurely.
+
 ## What's new in v9 (Header Navigation & Elevated AI Vocab Vault)
 
 - **📌 Unified Header Navigation**: Migrated all section selectors (*Today, Log Session, Dashboard, Aeon Log, Mock Tests, Tasks, and Vocab Bank*) from the bottom bar to a sleek, responsive pill-navigation selector in the sticky top header. Legacy subheaders have been removed for a clean, premium visual design.

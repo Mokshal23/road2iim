@@ -7,6 +7,7 @@ import Modal from './Modal';
 import ReadingSpeedTrend from './ReadingSpeedTrend';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { safeStorage } from '../utils/storage';
+import VoiceInput from './VoiceInput';
 
 function speakWord(word) {
   if ('speechSynthesis' in window) {
@@ -171,37 +172,80 @@ function AeonForm({ editArticle = null, onDone = null }) {
       {!isEdit && <h3>Log an article</h3>}
       <div className="row-card__grid">
         <label>Date<input type="date" max={todayStr()} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></label>
-        <label className="aeon-title">Title<input value={form.title} placeholder="Article title" onChange={(e) => setForm({ ...form, title: e.target.value })} required /></label>
-        <label>
+        <label className="aeon-title" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Title
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input value={form.title} placeholder="Article title" onChange={(e) => setForm({ ...form, title: e.target.value })} required style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, title: val }))} />
+            </div>
+          </div>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
           Topic
-          <input list="aeon-topics" value={form.topic} placeholder="e.g. Philosophy" onChange={(e) => setForm({ ...form, topic: e.target.value })} />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input list="aeon-topics" value={form.topic} placeholder="e.g. Philosophy" onChange={(e) => setForm({ ...form, topic: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, topic: val }))} />
+            </div>
+          </div>
           <datalist id="aeon-topics">
             {TOPIC_SUGGESTIONS['Reading Comprehension'].map((t) => <option key={t} value={t} />)}
           </datalist>
         </label>
-        <label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
           Difficulty
-          <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
-            {AEON_DIFFICULTY.map((d) => <option key={d} value={d}>{d}</option>)}
+          <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })} style={{ width: '100%' }}>
+            {DIFFICULTY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </label>
-        <label>Link <span className="optional">(optional)</span><input type="url" value={form.link} placeholder="https://..." onChange={(e) => setForm({ ...form, link: e.target.value })} /></label>
-        <label>Time taken (min)<input type="number" min="0" step="0.5" value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} /></label>
-        <label>Word count<input type="number" min="0" value={form.wordCount} onChange={(e) => setForm({ ...form, wordCount: e.target.value })} /></label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Link <span className="optional">(optional)</span>
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input type="url" value={form.link} placeholder="https://..." onChange={(e) => setForm({ ...form, link: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, link: val }))} />
+            </div>
+          </div>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Time taken (min)
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input type="number" min="0" step="0.5" value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, timeTaken: val }))} isNumeric />
+            </div>
+          </div>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Word count
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input type="number" min="0" value={form.wordCount} onChange={(e) => setForm({ ...form, wordCount: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, wordCount: val }))} isNumeric />
+            </div>
+          </div>
+        </label>
       </div>
 
       {Number(form.timeTaken) > 0 && Number(form.wordCount) > 0 && (
         <p className="insight">Reading speed: <strong>{Math.round(Number(form.wordCount) / Number(form.timeTaken))} wpm</strong></p>
       )}
 
-      <label className="aeon-summary">
+      <label className="aeon-summary" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
         Summary <span className="optional">(2-3 lines, in your own words)</span>
-        <textarea
-          rows={3}
-          value={form.summary}
-          placeholder="What was the article actually arguing?"
-          onChange={(e) => setForm({ ...form, summary: e.target.value })}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+          <textarea
+            rows={3}
+            value={form.summary}
+            placeholder="What was the article actually arguing?"
+            onChange={(e) => setForm({ ...form, summary: e.target.value })}
+            style={{ width: '100%', paddingRight: '36px', margin: 0 }}
+          />
+          <div style={{ position: 'absolute', right: '8px', bottom: '8px' }}>
+            <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, summary: val }))} />
+          </div>
+        </div>
       </label>
 
       <details style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', marginBottom: '16px', cursor: 'pointer' }}>

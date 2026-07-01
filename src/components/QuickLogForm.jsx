@@ -4,6 +4,7 @@ import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
 import TagPicker from './TagPicker';
+import VoiceInput from './VoiceInput';
 import AIScreenshotLog from './AIScreenshotLog';
 import { defineWordWithGemini } from '../utils/ai';
 import { useAppStore } from '../store/useAppStore';
@@ -202,23 +203,36 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
       )}
 
       <div className="quick-log__topic-row">
-        <input
-          list="quick-topics"
-          value={form.topic}
-          placeholder="Topic"
-          onChange={(e) => setForm({ ...form, topic: e.target.value })}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', flex: 1, position: 'relative' }}>
+          <input
+            list="quick-topics"
+            value={form.topic}
+            placeholder="Topic"
+            onChange={(e) => setForm({ ...form, topic: e.target.value })}
+            style={{ width: '100%', paddingRight: '36px' }}
+          />
+          <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+            <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, topic: val }))} />
+          </div>
+        </div>
         <datalist id="quick-topics">{topicOptions.map((t) => <option key={t} value={t} />)}</datalist>
-        <input
-          list="quick-labels"
-          value={form.label}
-          placeholder="Heading (e.g. Passage 1)"
-          onChange={(e) => setForm({ ...form, label: e.target.value })}
-        />
+
+        <div style={{ display: 'flex', alignItems: 'center', flex: 1, position: 'relative' }}>
+          <input
+            list="quick-labels"
+            value={form.label}
+            placeholder="Heading (e.g. Passage 1)"
+            onChange={(e) => setForm({ ...form, label: e.target.value })}
+            style={{ width: '100%', paddingRight: '36px' }}
+          />
+          <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+            <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, label: val }))} />
+          </div>
+        </div>
         <datalist id="quick-labels">
           {labelSuggestions.map((l) => <option key={l} value={l} />)}
         </datalist>
-        <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
+        <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} style={{ flexShrink: 0 }}>
           {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
@@ -239,17 +253,44 @@ export default function QuickLogForm({ sectionKey, entries = [] }) {
       </label>
 
       <div className="quick-log__big-grid">
-        <label>Time (min)<input type="number" min="0" step="0.5" autoFocus value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} /></label>
-        <label>Attempted<input type="number" min="0" value={form.attempted} onChange={(e) => setForm({ ...form, attempted: e.target.value })} /></label>
-        <label style={isInvalid ? { color: 'var(--red)' } : undefined}>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Time (min)
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input type="number" min="0" step="0.5" autoFocus value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, timeTaken: val }))} isNumeric />
+            </div>
+          </div>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Attempted
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input type="number" min="0" value={form.attempted} onChange={(e) => setForm({ ...form, attempted: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, attempted: val }))} isNumeric />
+            </div>
+          </div>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative', color: isInvalid ? 'var(--red)' : undefined }}>
           Correct
-          <input
-            type="number"
-            min="0"
-            value={form.correct}
-            onChange={(e) => setForm({ ...form, correct: e.target.value })}
-            style={isInvalid ? { borderColor: 'var(--red)', outlineColor: 'var(--red)' } : undefined}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input
+              type="number"
+              min="0"
+              value={form.correct}
+              onChange={(e) => setForm({ ...form, correct: e.target.value })}
+              style={{
+                width: '100%',
+                paddingRight: '36px',
+                margin: 0,
+                borderColor: isInvalid ? 'var(--red)' : undefined,
+                outlineColor: isInvalid ? 'var(--red)' : undefined
+              }}
+            />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, correct: val }))} isNumeric />
+            </div>
+          </div>
         </label>
       </div>
       {isInvalid && (

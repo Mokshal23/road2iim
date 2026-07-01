@@ -6,6 +6,7 @@ import { computeStats } from '../utils/calc';
 import { todayStr } from '../utils/dates';
 import { saveSessionRows } from '../hooks/useEntries';
 import TagPicker from './TagPicker';
+import VoiceInput from './VoiceInput';
 import { defineWordWithGemini } from '../utils/ai';
 import AIScreenshotLog from './AIScreenshotLog';
 
@@ -318,57 +319,92 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable, labelS
       </div>
 
       <div className="row-card__grid">
-        <label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
           Topic
-          <input
-            list={listId}
-            value={row.topic}
-            placeholder="e.g. Economics"
-            onChange={(e) => onChange({ topic: e.target.value })}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input
+              list={listId}
+              value={row.topic}
+              placeholder="e.g. Economics"
+              onChange={(e) => onChange({ topic: e.target.value })}
+              style={{ width: '100%', paddingRight: '36px', margin: 0 }}
+            />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+              <VoiceInput onTranscript={(val) => onChange({ topic: val })} />
+            </div>
+          </div>
           <datalist id={listId}>
             {topicOptions.map((t) => <option key={t} value={t} />)}
           </datalist>
         </label>
 
-        <label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
           Label <span className="optional">(optional)</span>
-          <input
-            list={`labels-${row.key}`}
-            value={row.label}
-            placeholder="Passage 1 / Set A"
-            onChange={(e) => onChange({ label: e.target.value })}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input
+              list={`labels-${row.key}`}
+              value={row.label}
+              placeholder="Passage 1 / Set A"
+              onChange={(e) => onChange({ label: e.target.value })}
+              style={{ width: '100%', paddingRight: '36px', margin: 0 }}
+            />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+              <VoiceInput onTranscript={(val) => onChange({ label: val })} />
+            </div>
+          </div>
           <datalist id={`labels-${row.key}`}>
             {labelSuggestions.map((l) => <option key={l} value={l} />)}
           </datalist>
         </label>
 
-        <label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
           Time taken (min)
-          <input
-            type="number" min="0" step="0.5"
-            value={row.timeTaken}
-            onChange={(e) => onChange({ timeTaken: e.target.value })}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input
+              type="number" min="0" step="0.5"
+              value={row.timeTaken}
+              onChange={(e) => onChange({ timeTaken: e.target.value })}
+              style={{ width: '100%', paddingRight: '36px', margin: 0 }}
+            />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => onChange({ timeTaken: val })} isNumeric />
+            </div>
+          </div>
         </label>
 
-        <label>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
           Attempted
-          <input
-            type="number" min="0" step="1"
-            value={row.attempted}
-            onChange={(e) => onChange({ attempted: e.target.value })}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input
+              type="number" min="0" step="1"
+              value={row.attempted}
+              onChange={(e) => onChange({ attempted: e.target.value })}
+              style={{ width: '100%', paddingRight: '36px', margin: 0 }}
+            />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => onChange({ attempted: val })} isNumeric />
+            </div>
+          </div>
         </label>
-        <label style={isInvalid ? { color: 'var(--red)' } : undefined}>
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative', color: isInvalid ? 'var(--red)' : undefined }}>
           Correct
-          <input
-            type="number" min="0" step="1"
-            value={row.correct}
-            onChange={(e) => onChange({ correct: e.target.value })}
-            style={isInvalid ? { borderColor: 'var(--red)', outlineColor: 'var(--red)' } : undefined}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input
+              type="number" min="0" step="1"
+              value={row.correct}
+              onChange={(e) => onChange({ correct: e.target.value })}
+              style={{
+                width: '100%',
+                paddingRight: '36px',
+                margin: 0,
+                borderColor: isInvalid ? 'var(--red)' : undefined,
+                outlineColor: isInvalid ? 'var(--red)' : undefined
+              }}
+            />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => onChange({ correct: val })} isNumeric />
+            </div>
+          </div>
         </label>
 
         {isInvalid && (
@@ -409,13 +445,19 @@ function RowCard({ row, index, sectionKey, onChange, onRemove, removable, labelS
         </label>
       </div>
 
-      <label className="row-card__notes">
+      <label className="row-card__notes" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
         Notes <span className="optional">(optional — e.g. "tricky double negative in Q2")</span>
-        <input
-          value={row.notes}
-          placeholder="Anything worth remembering about this one"
-          onChange={(e) => onChange({ notes: e.target.value })}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+          <input
+            value={row.notes}
+            placeholder="Anything worth remembering about this one"
+            onChange={(e) => onChange({ notes: e.target.value })}
+            style={{ width: '100%', paddingRight: '36px', margin: 0 }}
+          />
+          <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+            <VoiceInput onTranscript={(val) => onChange({ notes: val })} />
+          </div>
+        </div>
       </label>
 
       {sectionKey === 'VARC' && (
