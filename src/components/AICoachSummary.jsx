@@ -176,13 +176,14 @@ function getSevenDaySummary(entries, mocks, articles) {
 
   // Overall calculations
   const totalEntries = recentEntries.length;
-  const totalTime = recentEntries.reduce((sum, e) => sum + (Number(e.timeTaken) || 0), 0);
+  const totalReadingTime = recentArticles.reduce((sum, a) => sum + (Number(a.timeTaken) || 0), 0);
+  const totalTime = recentEntries.reduce((sum, e) => sum + (Number(e.timeTaken) || 0), 0) + totalReadingTime;
   const totalAttempted = recentEntries.reduce((sum, e) => sum + (Number(e.attempted) || 0), 0);
   const totalCorrect = recentEntries.reduce((sum, e) => sum + (Number(e.correct) || 0), 0);
   const overallAccuracy = totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : 0;
 
   // Section details
-  const sections = { VARC: { time: 0, att: 0, corr: 0 }, LRDI: { time: 0, att: 0, corr: 0 }, QA: { time: 0, att: 0, corr: 0 } };
+  const sections = { VARC: { time: totalReadingTime, att: 0, corr: 0 }, LRDI: { time: 0, att: 0, corr: 0 }, QA: { time: 0, att: 0, corr: 0 } };
   const mistakeCounts = {};
   const positiveCounts = {};
 
@@ -214,9 +215,8 @@ function getSevenDaySummary(entries, mocks, articles) {
     .map(x => x[0]);
 
   return {
-    period: "Last 7 days",
-    overall: {
-      sessionsLogged: totalEntries,
+    summary: {
+      recentSessionsCount: totalEntries,
       totalMinutes: totalTime,
       totalAttempted,
       accuracy: totalAttempted > 0 ? `${overallAccuracy}%` : '—'
@@ -241,7 +241,7 @@ function getSevenDaySummary(entries, mocks, articles) {
     aeonArticles: {
       countRead: recentArticles.length,
       averageWpm: recentArticles.length > 0
-        ? Math.round(recentArticles.reduce((sum, a) => sum + (Number(a.wpm) || 0), 0) / recentArticles.length)
+        ? Math.round(recentArticles.reduce((sum, a) => sum + (Number(a.readingSpeed) || Number(a.wpm) || 0), 0) / recentArticles.length)
         : 0
     }
   };

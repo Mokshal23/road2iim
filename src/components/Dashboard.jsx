@@ -84,7 +84,7 @@ export default function Dashboard({
       </CardErrorBoundary>
 
       <CardErrorBoundary>
-        <TimeOfDayAnalysis entries={sectionEntries} sectionKey={sectionKey} />
+        <TimeOfDayAnalysis entries={sectionEntries} articles={articles} sectionKey={sectionKey} />
       </CardErrorBoundary>
 
       {sectionKey === 'VARC' && (

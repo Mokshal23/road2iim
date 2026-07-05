@@ -9,14 +9,20 @@ const SLOTS = [
   { key: 'night', label: 'Night (9 PM - 6 AM)', icon: '🌙', hrs: [21, 6] },
 ];
 
-export default function TimeOfDayAnalysis({ entries = [], sectionKey }) {
+export default function TimeOfDayAnalysis({ entries = [], articles = [], sectionKey }) {
   const data = useMemo(() => {
     const groups = { morning: [], afternoon: [], evening: [], night: [] };
 
     // Filter to entries with attempted questions to analyze performance
-    const activeEntries = entries.filter(e => (e.attempted || 0) > 0);
+    const activeEntries = entries.filter(e => (Number(e.attempted) || 0) > 0);
+    const listToGroup = [...activeEntries];
 
-    activeEntries.forEach((e) => {
+    if (sectionKey === 'VARC') {
+      const activeArticles = (articles || []).filter(a => Number(a.timeTaken) > 0);
+      listToGroup.push(...activeArticles);
+    }
+
+    listToGroup.forEach((e) => {
       if (!e.createdAt) return;
       
       let hr = 12; // default fallback
@@ -46,20 +52,25 @@ export default function TimeOfDayAnalysis({ entries = [], sectionKey }) {
       }
     });
 
+    const isReading = (item) => item.type === 'book' || item.type === 'aeon' || !item.section;
+
     return SLOTS.map((s) => {
       const list = groups[s.key];
-      const agg = aggregate(list);
+      const setsList = list.filter(item => !isReading(item));
+      const readList = list.filter(item => isReading(item));
+      const agg = aggregate(setsList);
       
       return {
         name: s.label,
         shortName: s.icon + ' ' + s.key.charAt(0).toUpperCase() + s.key.slice(1),
-        count: list.length,
-        accuracy: list.length ? agg.accuracy : 0,
-        mpm: list.length ? agg.marksPerMinute : 0,
+        count: setsList.length,
+        readCount: readList.length,
+        accuracy: setsList.length ? agg.accuracy : 0,
+        mpm: setsList.length ? agg.marksPerMinute : 0,
         timeTaken: list.reduce((sum, item) => sum + (Number(item.timeTaken) || 0), 0)
       };
     });
-  }, [entries]);
+  }, [entries, articles, sectionKey]);
 
   const insight = useMemo(() => {
     const activeSlots = data.filter(d => d.count >= 2);
@@ -81,14 +92,14 @@ export default function TimeOfDayAnalysis({ entries = [], sectionKey }) {
     return `You perform best during the ${best.name.split(' ')[0]} with ${best.accuracy}% accuracy. Your performance drops during the ${worst.name.split(' ')[0]} to ${worst.accuracy}% (a ${diff}% drop). Consider scheduling mock solving during your peak hours!`;
   }, [data]);
 
-  const hasAnyData = data.some(d => d.count > 0);
+  const hasAnyData = data.some(d => d.count > 0 || d.readCount > 0);
 
   if (!hasAnyData) {
     return (
-      <div className="card time-of-day-analysis ai-card" style={{ marginTop: '24px' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🕒 Time-of-day Performance Analysis</h3>
+      <div className="card time-of-day-analysis ai-card" style={{ marginTop: '24px', padding: '24px' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600 }}>🕒 Time-of-day Performance Analysis</h3>
         <p className="insight" style={{ color: 'var(--text-secondary)' }}>Correlates your accuracy and speed (marks/min) with the system timestamp of when you logged the session.</p>
-        <p className="empty" style={{ margin: '20px 0 0 0', color: 'var(--text-secondary)' }}>No practice logs with attempted questions found yet.</p>
+        <p className="empty" style={{ margin: '20px 0 0 0', color: 'var(--text-secondary)' }}>No practice or reading logs found yet.</p>
       </div>
     );
   }
@@ -115,12 +126,19 @@ export default function TimeOfDayAnalysis({ entries = [], sectionKey }) {
                 {data.map((row) => (
                   <tr key={row.name} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
                     <td style={{ fontWeight: 500, padding: '12px 16px' }}>{row.name}</td>
-                    <td>{row.count} sets</td>
+                    <td>
+                      {row.count} sets
+                      {row.readCount > 0 && (
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px' }}>
+                          ({row.readCount} read)
+                        </span>
+                      )}
+                    </td>
                     <td style={{ fontWeight: 600, color: row.count ? (row.accuracy >= 70 ? 'var(--success)' : 'var(--danger)') : 'inherit' }}>
                       {row.count ? `${row.accuracy}%` : '—'}
                     </td>
                     <td>{row.count ? `${row.mpm} mpm` : '—'}</td>
-                    <td style={{ paddingRight: '16px' }}>{row.count ? `${row.timeTaken}m` : '—'}</td>
+                    <td style={{ paddingRight: '16px' }}>{(row.count || row.readCount) ? `${row.timeTaken}m` : '—'}</td>
                   </tr>
                 ))}
               </tbody>
