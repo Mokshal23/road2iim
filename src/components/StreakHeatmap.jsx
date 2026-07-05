@@ -179,19 +179,25 @@ function DayDetailsModal({ date, entries, aeonArticles, mocks, onClose }) {
             {dayArticles.length > 0 && (
               <div className="detail-section">
                 <h4 style={{ color: 'var(--teal)', margin: '0 0 12px 0', borderBottom: '1px solid var(--border)', paddingBottom: '6px', fontSize: '14px', fontWeight: 600 }}>
-                  📖 Aeon Articles ({dayArticles.length})
+                  📖 Reading Logs ({dayArticles.length})
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {dayArticles.map((a) => (
                     <div key={a.id} className="card" style={{ background: 'var(--surface-raised)', padding: '15px', margin: 0, border: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <strong style={{ fontSize: '13px' }}>{a.title}</strong>
-                        <span style={{ fontSize: '11px', background: 'var(--surface)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>{a.topic}</span>
+                        <span style={{ fontSize: '11px', background: 'var(--surface)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>{a.type === 'book' ? '📚 Book' : a.topic}</span>
                       </div>
                       
                       <div style={{ display: 'flex', gap: '15px', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                        {a.wordCount && a.timeTaken && (
-                          <span>⚡ {Math.round(a.wordCount / a.timeTaken)} wpm ({a.wordCount} words / {a.timeTaken} mins)</span>
+                        {a.type === 'book' ? (
+                          <span>
+                            ⚡ {a.readingSpeed || 0} wpm (Pages {a.startPage || 0}–{a.endPage || 0} / {a.timeTaken || 0} mins)
+                          </span>
+                        ) : (
+                          a.wordCount && a.timeTaken && (
+                            <span>⚡ {a.readingSpeed || Math.round(a.wordCount / a.timeTaken)} wpm ({a.wordCount} words / {a.timeTaken} mins)</span>
+                          )
                         )}
                         <span>Difficulty: {a.difficulty}</span>
                       </div>

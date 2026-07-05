@@ -34,29 +34,49 @@ function blankForm() {
 }
 
 export default function AeonLog({ articles = [], readOnly = false }) {
-  const [tab, setTab] = useState('log');
+  const [tab, setTab] = useState('aeon');
   const [editing, setEditing] = useState(null);
   
   // States for interactive modals
   const [activeGradeArticle, setActiveGradeArticle] = useState(null);
   const [activeQuizArticle, setActiveQuizArticle] = useState(null);
 
+  const bookSuggestions = useMemo(() => {
+    const titles = articles
+      .filter((a) => a.type === 'book' && a.title)
+      .map((a) => a.title);
+    return Array.from(new Set(titles));
+  }, [articles]);
+
+  const aeonArticles = useMemo(() => articles.filter((a) => a.type === 'aeon' || !a.type), [articles]);
+  const bookArticles = useMemo(() => articles.filter((a) => a.type === 'book'), [articles]);
+
   return (
     <div>
       <div className="subtab-row">
-        <button className={`subtab ${tab === 'log' ? 'subtab--active' : ''}`} onClick={() => setTab('log')}>Articles</button>
+        <button className={`subtab ${tab === 'aeon' ? 'subtab--active' : ''}`} onClick={() => setTab('aeon')}>Articles</button>
+        <button className={`subtab ${tab === 'book' ? 'subtab--active' : ''}`} onClick={() => setTab('book')}>Book Logs</button>
         <button className={`subtab ${tab === 'analysis' ? 'subtab--active' : ''}`} onClick={() => setTab('analysis')}>Analysis</button>
       </div>
 
-      {tab === 'log' ? (
+      {tab === 'aeon' ? (
         <>
           {!readOnly && <AeonForm />}
           <ArticleList 
-            articles={articles} 
+            articles={aeonArticles} 
             readOnly={readOnly} 
             onEdit={setEditing} 
             onGradeSummary={setActiveGradeArticle}
             onPlayQuiz={setActiveQuizArticle}
+          />
+        </>
+      ) : tab === 'book' ? (
+        <>
+          {!readOnly && <BookForm suggestions={bookSuggestions} />}
+          <BookList 
+            books={bookArticles} 
+            readOnly={readOnly} 
+            onEdit={setEditing} 
           />
         </>
       ) : (
@@ -64,8 +84,12 @@ export default function AeonLog({ articles = [], readOnly = false }) {
       )}
 
       {editing && (
-        <Modal title="Edit article" onClose={() => setEditing(null)}>
-          <AeonForm editArticle={editing} onDone={() => setEditing(null)} />
+        <Modal title={editing.type === 'book' ? "Edit book log" : "Edit article"} onClose={() => setEditing(null)}>
+          {editing.type === 'book' ? (
+            <BookForm editBook={editing} onDone={() => setEditing(null)} suggestions={bookSuggestions} />
+          ) : (
+            <AeonForm editArticle={editing} onDone={() => setEditing(null)} />
+          )}
         </Modal>
       )}
 
@@ -296,6 +320,292 @@ function AeonForm({ editArticle = null, onDone = null }) {
       </div>
       {status && <div className={`status status--${status.type}`}>{status.msg}</div>}
     </form>
+  );
+}
+
+function blankBookForm() {
+  return {
+    date: todayStr(),
+    title: '',
+    topic: '',
+    difficulty: 'Medium',
+    summary: '',
+    vocab: [{ word: '', meaning: '' }],
+    startPage: '',
+    endPage: '',
+    timeTaken: '',
+    type: 'book'
+  };
+}
+
+function BookForm({ editBook = null, onDone = null, suggestions = [] }) {
+  const isEdit = Boolean(editBook);
+  const [form, setForm] = useState(() => {
+    if (editBook) {
+      return {
+        date: editBook.date,
+        title: editBook.title,
+        topic: editBook.topic || '',
+        difficulty: editBook.difficulty || 'Medium',
+        summary: editBook.summary || '',
+        vocab: editBook.vocab?.length ? editBook.vocab : [{ word: '', meaning: '' }],
+        startPage: editBook.startPage || '',
+        endPage: editBook.endPage || '',
+        timeTaken: editBook.timeTaken || '',
+        type: 'book'
+      };
+    }
+    const draft = safeStorage.getSessionItem('book_form_draft');
+    return draft || blankBookForm();
+  });
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState(null);
+  const [definingIdx, setDefiningIdx] = useState(null);
+
+  // Autosave form draft on change
+  useEffect(() => {
+    if (!isEdit) {
+      safeStorage.setSessionItem('book_form_draft', form);
+    }
+  }, [form, isEdit]);
+
+  function updateVocab(idx, patch) {
+    setForm((f) => ({ ...f, vocab: f.vocab.map((v, i) => (i === idx ? { ...v, ...patch } : v)) }));
+  }
+  function addVocabRow() {
+    setForm((f) => ({ ...f, vocab: [...f.vocab, { word: '', meaning: '' }] }));
+  }
+  function removeVocabRow(idx) {
+    setForm((f) => ({ ...f, vocab: f.vocab.length === 1 ? f.vocab : f.vocab.filter((_, i) => i !== idx) }));
+  }
+  async function handleAutoDefine(idx, word) {
+    if (!word) return;
+    const key = localStorage.getItem('gemini_api_key');
+    if (!key) {
+      alert('Please save a Gemini API key in the AI Log Zone first!');
+      return;
+    }
+    setDefiningIdx(idx);
+    try {
+      const meaning = await defineWordWithGemini(word, key);
+      updateVocab(idx, { meaning });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to fetch meaning. Please type it manually.');
+    } finally {
+      setDefiningIdx(null);
+    }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.title.trim()) {
+      setStatus({ type: 'error', msg: 'Please provide a book title.' });
+      return;
+    }
+    if (Number(form.startPage) > Number(form.endPage)) {
+      setStatus({ type: 'error', msg: 'Starting page cannot exceed ending page.' });
+      return;
+    }
+    setSaving(true);
+    try {
+      if (isEdit) {
+        await updateAeonArticle(editBook.id, form);
+        onDone?.();
+      } else {
+        await addAeonArticle(form);
+        setStatus({ type: 'success', msg: 'Book log saved successfully.' });
+        safeStorage.removeSessionItem('book_form_draft');
+        setForm(blankBookForm());
+      }
+    } catch (e2) {
+      setStatus({ type: 'error', msg: e2.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const calculatedWpm = useMemo(() => {
+    const start = Number(form.startPage) || 0;
+    const end = Number(form.endPage) || 0;
+    const time = Number(form.timeTaken) || 0;
+    const pages = end - start;
+    if (pages > 0 && time > 0) {
+      return Math.round((pages * 250) / time);
+    }
+    return 0;
+  }, [form.startPage, form.endPage, form.timeTaken]);
+
+  return (
+    <form className={isEdit ? '' : 'card aeon-form'} onSubmit={handleSubmit}>
+      {!isEdit && <h3>Log a book reading session</h3>}
+      <div className="row-card__grid">
+        <label>Date<input type="date" max={todayStr()} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></label>
+        
+        <label className="aeon-title" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Book Title
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input 
+              value={form.title} 
+              placeholder="e.g. Sapiens" 
+              list="book-titles"
+              onChange={(e) => setForm({ ...form, title: e.target.value })} 
+              required 
+              style={{ width: '100%', paddingRight: '36px', margin: 0 }} 
+            />
+            <datalist id="book-titles">
+              {suggestions.map((t) => <option key={t} value={t} />)}
+            </datalist>
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, title: val }))} />
+            </div>
+          </div>
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Genre / Topic
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input list="book-topics" value={form.topic} placeholder="e.g. Non-Fiction" onChange={(e) => setForm({ ...form, topic: e.target.value })} style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, topic: val }))} />
+            </div>
+          </div>
+          <datalist id="book-topics">
+            {TOPIC_SUGGESTIONS['Reading Comprehension'].map((t) => <option key={t} value={t} />)}
+          </datalist>
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Difficulty
+          <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })} style={{ width: '100%' }}>
+            {AEON_DIFFICULTY.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Starting Page
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input type="number" min="0" value={form.startPage} onChange={(e) => setForm({ ...form, startPage: e.target.value })} required style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, startPage: val }))} isNumeric />
+            </div>
+          </div>
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Ending Page
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input type="number" min="0" value={form.endPage} onChange={(e) => setForm({ ...form, endPage: e.target.value })} required style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, endPage: val }))} isNumeric />
+            </div>
+          </div>
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          Time taken (min)
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+            <input type="number" min="0" step="0.5" value={form.timeTaken} onChange={(e) => setForm({ ...form, timeTaken: e.target.value })} required style={{ width: '100%', paddingRight: '36px', margin: 0 }} />
+            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)' }}>
+              <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, timeTaken: val }))} isNumeric />
+            </div>
+          </div>
+        </label>
+      </div>
+
+      {calculatedWpm > 0 && (
+        <p className="insight">
+          Estimated reading speed: <strong>{calculatedWpm} wpm</strong> (Based on {Number(form.endPage) - Number(form.startPage)} pages read · ~250 words/page)
+        </p>
+      )}
+
+      <label className="aeon-summary" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        Summary <span className="optional">(Key takeaways from this reading session)</span>
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}>
+          <textarea
+            rows={3}
+            value={form.summary}
+            placeholder="Write a brief summary of the chapters or section you read..."
+            onChange={(e) => setForm({ ...form, summary: e.target.value })}
+            style={{ width: '100%', paddingRight: '36px', margin: 0 }}
+          />
+          <div style={{ position: 'absolute', right: '8px', bottom: '8px' }}>
+            <VoiceInput onTranscript={(val) => setForm(f => ({ ...f, summary: f.summary ? f.summary + ' ' + val : val }))} />
+          </div>
+        </div>
+      </label>
+
+      <div className="vocab-editor">
+        <span className="row-card__tags-label">New vocabulary</span>
+        {form.vocab.map((v, idx) => (
+          <div key={idx} className="vocab-editor__row">
+            <input placeholder="word" value={v.word} onChange={(e) => updateVocab(idx, { word: e.target.value })} />
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm define-btn"
+              style={{ padding: '4px 8px', minHeight: 'auto', alignSelf: 'center' }}
+              disabled={definingIdx === idx || !v.word}
+              onClick={() => handleAutoDefine(idx, v.word)}
+              title="Define word with AI"
+            >
+              {definingIdx === idx ? '⏳' : '✨'}
+            </button>
+            <input placeholder="meaning" value={v.meaning} onChange={(e) => updateVocab(idx, { meaning: e.target.value })} />
+            {form.vocab.length > 1 && (
+              <button type="button" className="icon-btn" onClick={() => removeVocabRow(idx)}>✕</button>
+            )}
+          </div>
+        ))}
+        <button type="button" className="btn btn--ghost btn--sm" onClick={addVocabRow}>+ Add word</button>
+      </div>
+
+      <div className="entry-form__actions">
+        {isEdit && <button type="button" className="btn btn--ghost" onClick={onDone}>Cancel</button>}
+        <button type="submit" className="btn btn--primary" disabled={saving}>
+          {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save Book Log'}
+        </button>
+      </div>
+      {status && <div className={`status status--${status.type}`}>{status.msg}</div>}
+    </form>
+  );
+}
+
+function BookList({ books = [], readOnly, onEdit }) {
+  const safeBooks = books || [];
+  if (safeBooks.length === 0) return <p className="empty">No book sessions logged yet.</p>;
+  return (
+    <div className="aeon-list">
+      {safeBooks.map((b) => (
+        <div key={b.id} className="aeon-card">
+          <div className="aeon-card__head">
+            <strong>📚 {b.title}</strong>
+            <span className="aeon-card__meta">
+              Pages {b.startPage}–{b.endPage} ({Number(b.endPage) - Number(b.startPage)} pages) {b.topic ? `· ${b.topic}` : ''} · {b.difficulty} · {b.timeTaken} min · {formatPretty(b.date)}
+            </span>
+            {b.readingSpeed > 0 && <span className="vocab-chip">{b.readingSpeed} wpm</span>}
+            {!readOnly && (
+              <>
+                <button className="icon-btn" onClick={() => onEdit(b)} aria-label="Edit">✎</button>
+                <button className="icon-btn" onClick={() => { if (window.confirm('Delete this book log?')) deleteAeonArticle(b.id); }} aria-label="Delete">🗑</button>
+              </>
+            )}
+          </div>
+          {b.summary && <p className="aeon-card__summary">"{b.summary}"</p>}
+          {b.vocab?.length > 0 && b.vocab[0].word && (
+            <div className="aeon-card__vocab">
+              <strong>Vocabulary:</strong>
+              <div className="vocab-chips">
+                {b.vocab.map((v, i) => v.word && (
+                  <span key={i} className="vocab-chip-item" onClick={() => speakWord(v.word)} title="Click to hear pronunciation">
+                    🔊 <strong>{v.word}</strong>: {v.meaning}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 

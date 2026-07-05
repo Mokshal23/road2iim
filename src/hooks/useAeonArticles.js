@@ -25,6 +25,12 @@ export async function addAeonArticle(article) {
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
+  let wordCount = Number(article.wordCount) || 0;
+  if (article.type === 'book') {
+    const pages = (Number(article.endPage) || 0) - (Number(article.startPage) || 0);
+    wordCount = pages > 0 ? pages * 250 : 0;
+  }
+
   const dataToSave = {
     studentId,
     date: article.date,
@@ -39,13 +45,16 @@ export async function addAeonArticle(article) {
     })),
     link: DOMPurify.sanitize(article.link || ''),
     timeTaken: Number(article.timeTaken) || 0,
-    wordCount: Number(article.wordCount) || 0,
-    readingSpeed: (Number(article.wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(article.wordCount) / Number(article.timeTaken)) : 0,
+    wordCount,
+    readingSpeed: (Number(wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(wordCount) / Number(article.timeTaken)) : 0,
     content: DOMPurify.sanitize(article.content || ''),
     summaryGrade: article.summaryGrade || null,
     quiz: article.quiz || null,
     quizHighScore: article.quizHighScore || 0,
     vocabMastery: article.vocabMastery || {},
+    type: article.type || 'aeon',
+    startPage: article.startPage !== undefined && article.startPage !== '' && article.startPage !== null ? Number(article.startPage) : null,
+    endPage: article.endPage !== undefined && article.endPage !== '' && article.endPage !== null ? Number(article.endPage) : null,
     createdAt: new Date().toISOString(),
   };
 
@@ -60,6 +69,13 @@ export async function deleteAeonArticle(id) {
 
 export async function updateAeonArticle(id, article) {
   const studentId = useAppStore.getState().studentId;
+
+  let wordCount = Number(article.wordCount) || 0;
+  if (article.type === 'book') {
+    const pages = (Number(article.endPage) || 0) - (Number(article.startPage) || 0);
+    wordCount = pages > 0 ? pages * 250 : 0;
+  }
+
   const dataToSave = {
     studentId,
     date: article.date,
@@ -74,9 +90,12 @@ export async function updateAeonArticle(id, article) {
     })),
     link: DOMPurify.sanitize(article.link || ''),
     timeTaken: Number(article.timeTaken) || 0,
-    wordCount: Number(article.wordCount) || 0,
-    readingSpeed: (Number(article.wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(article.wordCount) / Number(article.timeTaken)) : 0,
+    wordCount,
+    readingSpeed: (Number(wordCount) > 0 && Number(article.timeTaken) > 0) ? Math.round(Number(wordCount) / Number(article.timeTaken)) : 0,
     content: DOMPurify.sanitize(article.content || ''),
+    type: article.type || 'aeon',
+    startPage: article.startPage !== undefined && article.startPage !== '' && article.startPage !== null ? Number(article.startPage) : null,
+    endPage: article.endPage !== undefined && article.endPage !== '' && article.endPage !== null ? Number(article.endPage) : null,
   };
 
   // Pre-flight check with merged student ID

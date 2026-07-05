@@ -249,6 +249,9 @@ export const AeonArticleWriteSchema = z.object({
   quizHighScore: z.preprocess((val) => Number(val), z.number().int().nonnegative().default(0)),
   vocabMastery: z.record(z.any()).default({}),
   date: z.string().min(1, "Date is required"),
+  type: z.enum(['aeon', 'book']).optional().default('aeon'),
+  startPage: z.preprocess((val) => val === '' || val === null ? null : Number(val), z.number().int().nonnegative().nullable().optional()),
+  endPage: z.preprocess((val) => val === '' || val === null ? null : Number(val), z.number().int().nonnegative().nullable().optional()),
 });
 
 export const CommentWriteSchema = z.object({

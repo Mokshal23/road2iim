@@ -15,10 +15,10 @@ export default function ReadingSpeedTrend({ articles }) {
   return (
     <div className="card">
       <h3>Reading speed trend</h3>
-      <p className="insight">Words per minute across your Aeon articles — higher is better.</p>
+      <p className="insight">Words per minute across your Aeon articles and Book logs — higher is better.</p>
 
       {data.length < 2 ? (
-        <p className="empty">Log a few more articles with word count and reading time to see your speed trend.</p>
+        <p className="empty">Log a few more reading sessions to see your speed trend.</p>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={data} margin={{ top: 5, right: 12, left: -12, bottom: 0 }}>
