@@ -193,8 +193,9 @@ export const GoalWriteSchema = z.object({
 export const TodoWriteSchema = z.object({
   studentId: z.string().min(1, "Student ID is required"),
   text: z.string().trim().min(1, "Todo description is required"),
-  dueDate: z.string().min(1, "Due date is required"),
+  dueDate: z.string().trim().default(''),
   done: z.boolean().default(false),
+  priority: z.enum(['High', 'Medium', 'Low']).optional().default('Medium'),
   createdAt: z.string().optional(),
 });
 

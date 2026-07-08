@@ -21,7 +21,7 @@ export function useTodos(studentId) {
   return { todos, loading };
 }
 
-export async function addTodo({ text, dueDate }) {
+export async function addTodo({ text, dueDate, priority = 'Medium' }) {
   const studentId = useAppStore.getState().studentId;
   if (!studentId) throw new Error('No active student ID in store.');
 
@@ -30,6 +30,7 @@ export async function addTodo({ text, dueDate }) {
     text: DOMPurify.sanitize(text || ''),
     dueDate: dueDate || '',
     done: false,
+    priority,
   };
 
   validateWrite(TodoWriteSchema, dataToSave);
@@ -38,6 +39,16 @@ export async function addTodo({ text, dueDate }) {
     ...dataToSave,
     createdAt: new Date().toISOString(),
   });
+}
+
+export async function updateTodo(id, patch) {
+  const updatedPatch = {};
+  if (patch.text !== undefined) updatedPatch.text = DOMPurify.sanitize(patch.text || '');
+  if (patch.dueDate !== undefined) updatedPatch.dueDate = patch.dueDate || '';
+  if (patch.done !== undefined) updatedPatch.done = Boolean(patch.done);
+  if (patch.priority !== undefined) updatedPatch.priority = patch.priority;
+
+  await updateDoc(doc(db, COLLECTION, id), updatedPatch);
 }
 
 export async function toggleTodoDone(todo) {
