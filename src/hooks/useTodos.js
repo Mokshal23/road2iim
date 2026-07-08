@@ -14,7 +14,7 @@ export function useTodos(studentId) {
 
   useEffect(() => {
     if (studentId) {
-      bindCollection(COLLECTION, studentId, { orderByField: 'dueDate', orderByDirection: 'asc' });
+      bindCollection(COLLECTION, studentId, { orderByField: 'order', orderByDirection: 'asc' });
     }
   }, [studentId, bindCollection]);
 
@@ -31,6 +31,7 @@ export async function addTodo({ text, dueDate, priority = 'Medium' }) {
     dueDate: dueDate || '',
     done: false,
     priority,
+    order: Date.now(),
   };
 
   validateWrite(TodoWriteSchema, dataToSave);
@@ -47,6 +48,7 @@ export async function updateTodo(id, patch) {
   if (patch.dueDate !== undefined) updatedPatch.dueDate = patch.dueDate || '';
   if (patch.done !== undefined) updatedPatch.done = Boolean(patch.done);
   if (patch.priority !== undefined) updatedPatch.priority = patch.priority;
+  if (patch.order !== undefined) updatedPatch.order = Number(patch.order);
 
   await updateDoc(doc(db, COLLECTION, id), updatedPatch);
 }

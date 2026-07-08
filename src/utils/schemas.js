@@ -196,6 +196,7 @@ export const TodoWriteSchema = z.object({
   dueDate: z.string().trim().default(''),
   done: z.boolean().default(false),
   priority: z.enum(['High', 'Medium', 'Low']).optional().default('Medium'),
+  order: z.number().optional().default(0),
   createdAt: z.string().optional(),
 });
 

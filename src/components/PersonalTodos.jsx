@@ -2,36 +2,25 @@ import { useState, useMemo } from 'react';
 import { addTodo, toggleTodoDone, removeTodo, updateTodo } from '../hooks/useTodos';
 import { formatPretty, todayStr } from '../utils/dates';
 
-const PRIORITY_WEIGHTS = {
-  High: 3,
-  Medium: 2,
-  Low: 1
-};
-
 export default function PersonalTodos({ todos = [] }) {
   const [form, setForm] = useState({ text: '', dueDate: '', priority: 'Medium' });
   const [saving, setSaving] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState(null);
 
   // Sorting logic:
   // 1. Pending first, completed last.
-  // 2. High priority (3) > Medium priority (2) > Low priority (1).
-  // 3. Due Date ascending (empty due dates put at the end).
+  // 2. Pending items are sorted strictly by `(a.order || 0) - (b.order || 0)`.
+  // 3. Completed items sorted by `order`.
   const sortedTodos = useMemo(() => {
-    return [...todos].sort((a, b) => {
-      const doneA = Boolean(a.done);
-      const doneB = Boolean(b.done);
-      if (doneA !== doneB) {
-        return doneA ? 1 : -1;
-      }
-      const weightA = PRIORITY_WEIGHTS[a.priority] || 2;
-      const weightB = PRIORITY_WEIGHTS[b.priority] || 2;
-      if (weightA !== weightB) {
-        return weightB - weightA;
-      }
-      const dateA = a.dueDate || '9999-12-31';
-      const dateB = b.dueDate || '9999-12-31';
-      return dateA.localeCompare(dateB);
-    });
+    const pendingItems = todos
+      .filter((t) => !t.done)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    const completedItems = todos
+      .filter((t) => t.done)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    return [...pendingItems, ...completedItems];
   }, [todos]);
 
   const pending = useMemo(() => sortedTodos.filter((t) => !t.done), [sortedTodos]);
@@ -41,9 +30,65 @@ export default function PersonalTodos({ todos = [] }) {
     e.preventDefault();
     if (!form.text.trim()) return;
     setSaving(true);
-    await addTodo(form);
+    // Append to the bottom by assigning an order larger than current max order
+    const maxOrder = pending.reduce((max, t) => (t.order > max ? t.order : max), 0);
+    await addTodo({
+      ...form,
+      order: maxOrder ? maxOrder + 1000 : Date.now()
+    });
     setForm({ text: '', dueDate: '', priority: 'Medium' });
     setSaving(false);
+  }
+
+  // Rearranges items when dropped
+  async function handleDrop(targetIndex) {
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    const newPending = [...pending];
+    const [movedItem] = newPending.splice(draggedIndex, 1);
+    newPending.splice(targetIndex, 0, movedItem);
+
+    setDraggedIndex(null);
+
+    // Save new index weights to database
+    try {
+      await Promise.all(
+        newPending.map((item, idx) => {
+          const newOrder = 1000 * (idx + 1);
+          if (item.order !== newOrder) {
+            return updateTodo(item.id, { order: newOrder });
+          }
+          return Promise.resolve();
+        })
+      );
+    } catch (err) {
+      console.error('Failed to update todo order:', err);
+    }
+  }
+
+  // Rearranges via button clicks
+  async function moveItem(index, direction) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= pending.length) return;
+
+    const newPending = [...pending];
+    const [movedItem] = newPending.splice(index, 1);
+    newPending.splice(targetIndex, 0, movedItem);
+
+    // Save new index weights to database
+    try {
+      await Promise.all(
+        newPending.map((item, idx) => {
+          const newOrder = 1000 * (idx + 1);
+          if (item.order !== newOrder) {
+            return updateTodo(item.id, { order: newOrder });
+          }
+          return Promise.resolve();
+        })
+      );
+    } catch (err) {
+      console.error('Failed to update todo order:', err);
+    }
   }
 
   return (
@@ -54,11 +99,23 @@ export default function PersonalTodos({ todos = [] }) {
         <p className="empty">No to-dos yet — add one below.</p>
       ) : (
         <ul className="task-list" style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0' }}>
-          {pending.map((t) => (
-            <TodoRow key={t.id} todo={t} />
+          {pending.map((t, index) => (
+            <TodoRow
+              key={t.id}
+              todo={t}
+              index={index}
+              totalPending={pending.length}
+              onDragStart={() => setDraggedIndex(index)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => handleDrop(index)}
+              onDragEnd={() => setDraggedIndex(null)}
+              onMoveUp={() => moveItem(index, -1)}
+              onMoveDown={() => moveItem(index, 1)}
+              isDraggable={true}
+            />
           ))}
           {completed.slice(0, 5).map((t) => (
-            <TodoRow key={t.id} todo={t} />
+            <TodoRow key={t.id} todo={t} isDraggable={false} />
           ))}
         </ul>
       )}
@@ -95,7 +152,18 @@ export default function PersonalTodos({ todos = [] }) {
   );
 }
 
-function TodoRow({ todo }) {
+function TodoRow({
+  todo,
+  index,
+  totalPending,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  onMoveUp,
+  onMoveDown,
+  isDraggable
+}) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
   const [editDueDate, setEditDueDate] = useState(todo.dueDate || '');
@@ -196,7 +264,37 @@ function TodoRow({ todo }) {
   }
 
   return (
-    <li className={`task-row ${todo.done ? 'task-row--done' : ''}`} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid var(--border)', gap: '8px' }}>
+    <li
+      className={`task-row ${todo.done ? 'task-row--done' : ''}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '10px 12px',
+        borderBottom: '1px solid var(--border)',
+        gap: '8px',
+        cursor: isDraggable && !todo.done ? 'grab' : 'default'
+      }}
+      draggable={isDraggable && !todo.done ? 'true' : 'false'}
+      onDragStart={isDraggable && !todo.done ? onDragStart : undefined}
+      onDragOver={isDraggable && !todo.done ? onDragOver : undefined}
+      onDrop={isDraggable && !todo.done ? onDrop : undefined}
+      onDragEnd={isDraggable && !todo.done ? onDragEnd : undefined}
+    >
+      {isDraggable && !todo.done && (
+        <span
+          style={{
+            cursor: 'grab',
+            color: 'var(--text-secondary)',
+            fontSize: '14px',
+            marginRight: '4px',
+            userSelect: 'none'
+          }}
+          title="Drag to rearrange"
+        >
+          ⠿
+        </span>
+      )}
+
       <input type="checkbox" checked={todo.done} onChange={() => toggleTodoDone(todo)} style={{ cursor: 'pointer' }} />
       
       {!todo.done && (
@@ -215,10 +313,35 @@ function TodoRow({ todo }) {
         </span>
       )}
 
-      <div style={{ display: 'flex', gap: '4px', opacity: 0.8 }} className="todo-actions">
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }} className="todo-actions">
+        {isDraggable && !todo.done && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginRight: '4px' }}>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+              disabled={index === 0}
+              style={{ fontSize: '9px', padding: '2px 4px', opacity: index === 0 ? 0.3 : 0.8 }}
+              title="Move Up"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+              disabled={index === totalPending - 1}
+              style={{ fontSize: '9px', padding: '2px 4px', opacity: index === totalPending - 1 ? 0.3 : 0.8 }}
+              title="Move Down"
+            >
+              ▼
+            </button>
+          </div>
+        )}
+
         <button 
           className="icon-btn" 
-          onClick={() => setEditing(true)} 
+          onClick={(e) => { e.stopPropagation(); setEditing(true); }} 
           aria-label="Edit to-do"
           style={{ fontSize: '13px', padding: '4px' }}
         >
@@ -226,7 +349,7 @@ function TodoRow({ todo }) {
         </button>
         <button 
           className="icon-btn" 
-          onClick={() => { if (window.confirm('Delete this to-do item?')) removeTodo(todo.id); }} 
+          onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this to-do item?')) removeTodo(todo.id); }} 
           aria-label="Delete to-do"
           style={{ fontSize: '13px', padding: '4px' }}
         >
