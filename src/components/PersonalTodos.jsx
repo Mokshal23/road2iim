@@ -1,36 +1,43 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { addTodo, toggleTodoDone, removeTodo, updateTodo } from '../hooks/useTodos';
 import { formatPretty, todayStr } from '../utils/dates';
 
 export default function PersonalTodos({ todos = [] }) {
   const [form, setForm] = useState({ text: '', dueDate: '', priority: 'Medium' });
   const [saving, setSaving] = useState(false);
+  
+  // Drag and Touch states
   const [draggedIndex, setDraggedIndex] = useState(null);
+  const [touchActiveIndex, setTouchActiveIndex] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(0);
 
-  // Sorting logic:
-  // 1. Pending first, completed last.
-  // 2. Pending items are sorted strictly by `(a.order || 0) - (b.order || 0)`.
-  // 3. Completed items sorted by `order`.
-  const sortedTodos = useMemo(() => {
-    const pendingItems = todos
+  // Firestore sorted lists
+  const pending = useMemo(() => {
+    return todos
       .filter((t) => !t.done)
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-    
-    const completedItems = todos
-      .filter((t) => t.done)
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-    return [...pendingItems, ...completedItems];
   }, [todos]);
 
-  const pending = useMemo(() => sortedTodos.filter((t) => !t.done), [sortedTodos]);
-  const completed = useMemo(() => sortedTodos.filter((t) => t.done), [sortedTodos]);
+  const completed = useMemo(() => {
+    return todos
+      .filter((t) => t.done)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [todos]);
+
+  // Local optimistic sorting state
+  const [localPending, setLocalPending] = useState([]);
+
+  // Sync local pending state when Firestore pending updates and no active interaction is happening
+  useEffect(() => {
+    if (draggedIndex === null && touchActiveIndex === null) {
+      setLocalPending(pending);
+    }
+  }, [pending, draggedIndex, touchActiveIndex]);
 
   async function handleAdd(e) {
     e.preventDefault();
     if (!form.text.trim()) return;
     setSaving(true);
-    // Append to the bottom by assigning an order larger than current max order
     const maxOrder = pending.reduce((max, t) => (t.order > max ? t.order : max), 0);
     await addTodo({
       ...form,
@@ -40,20 +47,11 @@ export default function PersonalTodos({ todos = [] }) {
     setSaving(false);
   }
 
-  // Rearranges items when dropped
-  async function handleDrop(targetIndex) {
-    if (draggedIndex === null || draggedIndex === targetIndex) return;
-
-    const newPending = [...pending];
-    const [movedItem] = newPending.splice(draggedIndex, 1);
-    newPending.splice(targetIndex, 0, movedItem);
-
-    setDraggedIndex(null);
-
-    // Save new index weights to database
+  // Saves final sorted orders to database
+  async function saveNewOrder(list) {
     try {
       await Promise.all(
-        newPending.map((item, idx) => {
+        list.map((item, idx) => {
           const newOrder = 1000 * (idx + 1);
           if (item.order !== newOrder) {
             return updateTodo(item.id, { order: newOrder });
@@ -66,52 +64,108 @@ export default function PersonalTodos({ todos = [] }) {
     }
   }
 
-  // Rearranges via button clicks
+  // Desktop Drag and Drop handlers
+  function handleDragStart(index) {
+    setDraggedIndex(index);
+  }
+
+  function handleDragOver(e, index) {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    // Swap items in local state instantly for live preview
+    const newPending = [...localPending];
+    const [movedItem] = newPending.splice(draggedIndex, 1);
+    newPending.splice(index, 0, movedItem);
+    setLocalPending(newPending);
+    setDraggedIndex(index);
+  }
+
+  async function handleDragEnd() {
+    setDraggedIndex(null);
+    await saveNewOrder(localPending);
+  }
+
+  // Touch Event handlers (iPad, mobile phone)
+  function handleTouchStart(e, index) {
+    setTouchActiveIndex(index);
+    setTouchStartY(e.touches[0].clientY);
+  }
+
+  function handleTouchMove(e) {
+    if (touchActiveIndex === null) return;
+    const clientY = e.touches[0].clientY;
+    const dY = clientY - touchStartY;
+    const rowHeight = 44; // approximate height of a list item
+
+    if (dY > rowHeight && touchActiveIndex < localPending.length - 1) {
+      // Drag down: swap with the item below
+      const targetIndex = touchActiveIndex + 1;
+      const newPending = [...localPending];
+      const [movedItem] = newPending.splice(touchActiveIndex, 1);
+      newPending.splice(targetIndex, 0, movedItem);
+      
+      setLocalPending(newPending);
+      setTouchActiveIndex(targetIndex);
+      setTouchStartY(clientY);
+    } else if (dY < -rowHeight && touchActiveIndex > 0) {
+      // Drag up: swap with the item above
+      const targetIndex = touchActiveIndex - 1;
+      const newPending = [...localPending];
+      const [movedItem] = newPending.splice(touchActiveIndex, 1);
+      newPending.splice(targetIndex, 0, movedItem);
+      
+      setLocalPending(newPending);
+      setTouchActiveIndex(targetIndex);
+      setTouchStartY(clientY);
+    }
+  }
+
+  async function handleTouchEnd() {
+    if (touchActiveIndex === null) return;
+    setTouchActiveIndex(null);
+    await saveNewOrder(localPending);
+  }
+
+  // Rearranges via button clicks (mobile arrow clicks)
   async function moveItem(index, direction) {
     const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= pending.length) return;
+    if (targetIndex < 0 || targetIndex >= localPending.length) return;
 
-    const newPending = [...pending];
+    const newPending = [...localPending];
     const [movedItem] = newPending.splice(index, 1);
     newPending.splice(targetIndex, 0, movedItem);
 
-    // Save new index weights to database
-    try {
-      await Promise.all(
-        newPending.map((item, idx) => {
-          const newOrder = 1000 * (idx + 1);
-          if (item.order !== newOrder) {
-            return updateTodo(item.id, { order: newOrder });
-          }
-          return Promise.resolve();
-        })
-      );
-    } catch (err) {
-      console.error('Failed to update todo order:', err);
-    }
+    setLocalPending(newPending);
+    await saveNewOrder(newPending);
   }
+
+  const activeList = draggedIndex !== null || touchActiveIndex !== null ? localPending : pending;
 
   return (
     <div className="card todo-card">
       <h3>📋 My to-dos</h3>
 
-      {pending.length === 0 && completed.length === 0 ? (
+      {activeList.length === 0 && completed.length === 0 ? (
         <p className="empty">No to-dos yet — add one below.</p>
       ) : (
         <ul className="task-list" style={{ listStyle: 'none', padding: 0, margin: '0 0 20px 0' }}>
-          {pending.map((t, index) => (
+          {activeList.map((t, index) => (
             <TodoRow
               key={t.id}
               todo={t}
               index={index}
-              totalPending={pending.length}
-              onDragStart={() => setDraggedIndex(index)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => handleDrop(index)}
-              onDragEnd={() => setDraggedIndex(null)}
+              totalPending={activeList.length}
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              onTouchStart={(e) => handleTouchStart(e, index)}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               onMoveUp={() => moveItem(index, -1)}
               onMoveDown={() => moveItem(index, 1)}
               isDraggable={true}
+              isDragging={draggedIndex === index || touchActiveIndex === index}
             />
           ))}
           {completed.slice(0, 5).map((t) => (
@@ -158,11 +212,14 @@ function TodoRow({
   totalPending,
   onDragStart,
   onDragOver,
-  onDrop,
   onDragEnd,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
   onMoveUp,
   onMoveDown,
-  isDraggable
+  isDraggable,
+  isDragging
 }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
@@ -272,12 +329,14 @@ function TodoRow({
         padding: '10px 12px',
         borderBottom: '1px solid var(--border)',
         gap: '8px',
-        cursor: isDraggable && !todo.done ? 'grab' : 'default'
+        cursor: isDraggable && !todo.done ? 'grab' : 'default',
+        background: isDragging ? 'rgba(74, 144, 226, 0.08)' : 'transparent',
+        transition: 'background 0.2s ease',
+        touchAction: 'pan-y' // allows page scrolling normally on mobile/iPad touch
       }}
       draggable={isDraggable && !todo.done ? 'true' : 'false'}
       onDragStart={isDraggable && !todo.done ? onDragStart : undefined}
       onDragOver={isDraggable && !todo.done ? onDragOver : undefined}
-      onDrop={isDraggable && !todo.done ? onDrop : undefined}
       onDragEnd={isDraggable && !todo.done ? onDragEnd : undefined}
     >
       {isDraggable && !todo.done && (
@@ -287,9 +346,17 @@ function TodoRow({
             color: 'var(--text-secondary)',
             fontSize: '14px',
             marginRight: '4px',
-            userSelect: 'none'
+            userSelect: 'none',
+            padding: '6px', // make touch target slightly larger for fingers
+            touchAction: 'none' // locks scrolling ONLY when active touching the handle
           }}
           title="Drag to rearrange"
+          onTouchStart={onTouchStart}
+          onTouchMove={(e) => {
+            e.preventDefault(); // lock viewport scroll while dragging handle
+            onTouchMove(e);
+          }}
+          onTouchEnd={onTouchEnd}
         >
           ⠿
         </span>
