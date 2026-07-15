@@ -128,6 +128,15 @@ cp .env.example .env   # then paste your Firebase config values into .env
 npm run dev
 ```
 
+## What's new in v11 (Spotify-like To-Do Reordering & Cross-Device Responsive Overhauls)
+
+- **📋 Inline To-Do Editing**: Added an inline edit button (✎) to each to-do item on your checklist, allowing you to edit the description text, set priority, or change due dates dynamically in-place.
+- **⠿ Spotify-like Drag & Drop Reordering**: Drag and drop tasks to arrange them in any order you want. Uses native HTML5 Drag and Drop APIs with optimistic UI sorting for zero lag.
+- **📱 Touchscreen Gestures for iPad/Mobile**: Enabled live touch-dragging on the `⠿` handle specifically for iPads, tablets, and mobile phones, with custom scroll locking during active drags.
+- **▲/▼ Mobile Arrow Fallbacks**: Tactile move-up/down button controls for effortless touch screen organization.
+- **🎨 Priority Pill Badges**: Color-coded badges mapping task priority levels (**High**, **Medium**, and **Low**).
+- **📐 Scrollable Data Tables**: Wrapped the multi-column Practice Logs, Syllabus Weightage, and Time-of-Day Slots tables inside scroll-safe containers (`overflow-x: auto`) to prevent layout clipping and white margins on mobile/tablet viewports.
+
 ## What's new in v10 (Hands-Free Voice Dictation & Logical Day Bounds)
 
 - **🎙️ Hands-Free Voice Dictation**: Integrated a smart microphone button (`🎤`) next to input fields across all logging forms. Students can dictate study topics, heading labels, time taken, attempts, correct counts, summaries, and notes using the browser-native Web Speech API.
