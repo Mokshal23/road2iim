@@ -48,57 +48,59 @@ export default function DayDrilldown({ entries, readOnly = false, sectionKey }) 
             <strong>{formatPretty(activeDate)}</strong> — {dayEntries.length} session{dayEntries.length > 1 ? 's' : ''},{' '}
             {dayAgg.accuracy}% overall accuracy, {dayAgg.marksPerMinute} marks/min, {dayAgg.timeTaken} min total
           </p>
-          <table className="day-table">
-            <thead>
-              <tr>
-                <th></th><th>Logged At</th><th>Subsection</th><th>Topic</th><th>Label</th>
-                <th>Duration</th><th>Att.</th><th>Cor.</th><th>Acc.</th><th>Mpm</th><th>Lost</th><th>Good</th><th>Mistakes</th><th>Source</th><th>Notes</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {dayEntries.map((e) => (
-                <tr key={e.id} className={e.flagged ? 'row--flagged' : ''}>
-                  <td>
-                    <button className={`star-btn ${e.flagged ? 'star-btn--active' : ''}`} onClick={() => toggleEntryFlag(e)} aria-label="Flag for discussion">★</button>
-                  </td>
-                  <td style={{ color: 'var(--text-secondary)', fontSize: '11px', whiteSpace: 'nowrap' }}>{formatTime(e.createdAt)}</td>
-                  <td>{e.subsection}</td>
-                  <td>{e.topic}</td>
-                  <td>{e.label || '—'}</td>
-                  <td>{e.timeTaken}m</td>
-                  <td>{e.attempted || '0'}</td>
-                  <td>{e.correct || '0'}</td>
-                  <td>{e.isConceptLog || e.accuracy === null ? '—' : `${e.accuracy}%`}</td>
-                  <td>{e.isConceptLog || e.marksPerMinute === null ? '—' : e.marksPerMinute}</td>
-                  <td>{e.isConceptLog || e.marksLost === null ? '—' : (e.marksLost ?? (e.negativeMarking ? (e.wrong || 0) * 1 : 0))}</td>
-                  <td className="tags-cell tags-cell--good">{(e.goodTags || []).join(', ') || '—'}</td>
-                  <td className="tags-cell">{(e.mistakeTags || []).join(', ') || '—'}</td>
-                  <td>{e.source}</td>
-                  <td className="tags-cell">{e.notes || '—'}</td>
-                  <td>
-                    {!readOnly && (
-                      <>
-                        <button className="icon-btn" onClick={() => setEditing(e)} aria-label="Edit">✎</button>
-                        <button 
-                          className="icon-btn" 
-                          onClick={async () => { 
-                            if (window.confirm('Delete this practice entry?')) {
-                              await deleteEntry(e.id); 
-                              useAppStore.getState().showToast('Practice entry deleted.', 'info');
-                            }
-                          }} 
-                          aria-label="Delete"
-                        >
-                          🗑
-                        </button>
-                      </>
-                    )}
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="day-table">
+              <thead>
+                <tr>
+                  <th></th><th>Logged At</th><th>Subsection</th><th>Topic</th><th>Label</th>
+                  <th>Duration</th><th>Att.</th><th>Cor.</th><th>Acc.</th><th>Mpm</th><th>Lost</th><th>Good</th><th>Mistakes</th><th>Source</th><th>Notes</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {dayEntries.map((e) => (
+                  <tr key={e.id} className={e.flagged ? 'row--flagged' : ''}>
+                    <td>
+                      <button className={`star-btn ${e.flagged ? 'star-btn--active' : ''}`} onClick={() => toggleEntryFlag(e)} aria-label="Flag for discussion">★</button>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '11px', whiteSpace: 'nowrap' }}>{formatTime(e.createdAt)}</td>
+                    <td>{e.subsection}</td>
+                    <td>{e.topic}</td>
+                    <td>{e.label || '—'}</td>
+                    <td>{e.timeTaken}m</td>
+                    <td>{e.attempted || '0'}</td>
+                    <td>{e.correct || '0'}</td>
+                    <td>{e.isConceptLog || e.accuracy === null ? '—' : `${e.accuracy}%`}</td>
+                    <td>{e.isConceptLog || e.marksPerMinute === null ? '—' : e.marksPerMinute}</td>
+                    <td>{e.isConceptLog || e.marksLost === null ? '—' : (e.marksLost ?? (e.negativeMarking ? (e.wrong || 0) * 1 : 0))}</td>
+                    <td className="tags-cell tags-cell--good">{(e.goodTags || []).join(', ') || '—'}</td>
+                    <td className="tags-cell">{(e.mistakeTags || []).join(', ') || '—'}</td>
+                    <td>{e.source}</td>
+                    <td className="tags-cell">{e.notes || '—'}</td>
+                    <td>
+                      {!readOnly && (
+                        <>
+                          <button className="icon-btn" onClick={() => setEditing(e)} aria-label="Edit">✎</button>
+                          <button 
+                            className="icon-btn" 
+                            onClick={async () => { 
+                              if (window.confirm('Delete this practice entry?')) {
+                                await deleteEntry(e.id); 
+                                useAppStore.getState().showToast('Practice entry deleted.', 'info');
+                              }
+                            }} 
+                            aria-label="Delete"
+                          >
+                            🗑
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
 

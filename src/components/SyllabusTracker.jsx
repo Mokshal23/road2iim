@@ -49,43 +49,45 @@ export default function SyllabusTracker({ entries = [], sectionKey }) {
         return (
           <div key={sub} className="syllabus-tracker__section" style={{ marginBottom: 20 }}>
             {subsections.length > 1 && <h4 style={{ color: section.color, marginBottom: 8 }}>{sub}</h4>}
-            <table className="day-table">
-              <thead>
-                <tr>
-                  <th>Topic</th>
-                  <th>Weight</th>
-                  <th>Attempts</th>
-                  <th>Accuracy</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((row) => {
-                  const weightCls = `weight-badge weight-badge--${row.weight.toLowerCase()}`;
-                  return (
-                    <tr key={row.topic}>
-                      <td style={{ fontWeight: 500 }}>{row.topic}</td>
-                      <td>
-                        <span className={weightCls}>{row.weight}</span>
-                      </td>
-                      <td>{row.attempts || '0'} Qs</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>
-                        {row.accuracy !== null ? `${row.accuracy}%` : '—'}
-                      </td>
-                      <td>
-                        {row.warning ? (
-                          <span className={`status-pill status-pill--${row.warning.replace(/\s+/g, '-').toLowerCase()}`}>
-                            {row.warning}
-                          </span>
-                        ) : (
-                          <span className="status-pill status-pill--ok">On Track</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="day-table">
+                <thead>
+                  <tr>
+                    <th>Topic</th>
+                    <th>Weight</th>
+                    <th>Attempts</th>
+                    <th>Accuracy</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map((row) => {
+                    const weightCls = `weight-badge weight-badge--${row.weight.toLowerCase()}`;
+                    return (
+                      <tr key={row.topic}>
+                        <td style={{ fontWeight: 500 }}>{row.topic}</td>
+                        <td>
+                          <span className={weightCls}>{row.weight}</span>
+                        </td>
+                        <td>{row.attempts || '0'} Qs</td>
+                        <td style={{ fontFamily: 'var(--font-mono)' }}>
+                          {row.accuracy !== null ? `${row.accuracy}%` : '—'}
+                        </td>
+                        <td>
+                          {row.warning ? (
+                            <span className={`status-pill status-pill--${row.warning.replace(/\s+/g, '-').toLowerCase()}`}>
+                              {row.warning}
+                            </span>
+                          ) : (
+                            <span className="status-pill status-pill--ok">On Track</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       })}

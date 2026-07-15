@@ -1758,3 +1758,89 @@ body[data-theme="light"] .header-tab--active {
   background: var(--danger);
 }
 
+/* Platform Friendly Responsive Upgrades */
+
+/* Tablets / iPad Portrait (under 1024px) */
+@media (max-width: 1024px) {
+  .page {
+    padding: 16px 12px 120px;
+  }
+  .today-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .vocab-bank-grid {
+    grid-template-columns: 1fr;
+  }
+  .vocab-bank-col-right {
+    max-height: none;
+  }
+  .dashboard__row {
+    grid-template-columns: 1fr !important;
+  }
+  .row-card__grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .mock-sections {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mobile Phones (under 576px) */
+@media (max-width: 576px) {
+  .page {
+    padding: 12px 8px 130px;
+  }
+  .row-card__grid {
+    grid-template-columns: 1fr !important;
+  }
+  .goal-form__grid {
+    grid-template-columns: 1fr !important;
+  }
+  .quick-log__big-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .mock-sections {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Compact tab pill navigation */
+  .tab-row {
+    width: 96% !important;
+    max-width: 96% !important;
+    bottom: 12px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    justify-content: flex-start !important;
+    scrollbar-width: none !important; /* Firefox */
+  }
+  .tab-row::-webkit-scrollbar {
+    display: none; /* Safari & Chrome */
+  }
+  .tab {
+    flex: 0 0 auto !important;
+    padding: 8px 12px !important;
+    font-size: 11px !important;
+  }
+  
+  /* Text sizing adjustments for mobile */
+  .card h3 {
+    font-size: 14px;
+  }
+  .app-header__title {
+    font-size: 16px;
+  }
+  .app-header__sub {
+    font-size: 12px;
+  }
+  
+  /* Center buttons on narrow columns */
+  .task-form {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .task-form input, .task-form select, .task-form button {
+    width: 100% !important;
+  }
+}
+

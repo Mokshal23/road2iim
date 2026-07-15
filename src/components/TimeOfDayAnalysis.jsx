@@ -111,7 +111,7 @@ export default function TimeOfDayAnalysis({ entries = [], articles = [], section
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
         <div>
-          <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <div style={{ background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)', overflowX: 'auto' }}>
             <table className="day-table" style={{ margin: 0, width: '100%' }}>
               <thead>
                 <tr style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
